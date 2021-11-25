@@ -1,0 +1,529 @@
+# 03 - Basic Scene
+
+## Renderer
+
+setSize：该方法调整canvas元素的宽高
+
+```
+renderer.setSize(width, height);
+```
+
+
+
+# 04 - Webpack
+
+
+
+# 05 - Transform objects
+
+## scale
+
+避免使用负值，因为这会在未来造成bug，“because axes won't be oriented in the logical direction”（不明白是什么意思）。
+
+```
+mesh.scale.set(-1, -1, -1);
+```
+
+## rotation
+
+欧拉角：当你绕X轴旋转物体后，其它轴的方向也被改变了，这种特性会导致在复杂的旋转下会产生万向锁问题。
+
+四元数：可以解决万向锁。
+
+可以使用欧拉角和四元数的任意一个来旋转物体，使用其中任意一个，都会改变另一个的值，比如使用欧拉角旋转后，物体的四元数属性也会变化。
+
+## group
+
+对group实例使用缩放、平移、旋转等等等等（所有变化），group内部的子孙都会被影响。
+
+比如先缩放了group，再把子孙添加进group，子孙也同样会会缩放。
+
+
+
+# 06-Animations
+
+## requestAnimationFrame
+
+执行 `requestAnimationFrame(f)` ，它会在下一帧执行 `f` 。
+
+## 三角函数实现周期运动
+
+Math.cos、Math.sin是实现周期运动的好方法，比如：
+
+```js
+const clock = new three.Clock();
+
+loop();
+
+function loop() {
+    
+    requestAnimationFrame(loop);
+    
+    const elapsed_time = clock.getElapsedTime();
+	
+    mesh.position.x = Math.cos(elapsed_time)
+    mesh.position.y = Math.sin(elapsed_time);
+    
+    renderer.render(scene, camera);
+    
+}
+```
+
+## lookAt
+
+`camera.lookAt(0, 0, 0)` lookAt方法根据camera的位置和目标点，来计算出一个方向，然后让camera看向这个方向，比如让camera看向自己的左下方。
+
+但是如果平移或旋转camera后，camera还是看向自己的左下方，注意camera是永远看向某个当初算出来的方向，而不是永远看向当初入参的那个点。
+
+## GSAP！！！著名的动画库！！！
+
+https://greensock.com/gsap/
+
+https://www.npmjs.com/package/gsap
+
+```js
+import gsap from "gsap";
+
+gsap.to(mesh.position, {durationL 1, delay: 1, x: 2}); // 它内部使用requestAnimationFrame来实现动画
+```
+
+# 07-Cameras
+
+## PerspectiveCamera
+
+### Fov(Field of view)
+
+使用度来描述相机视锥体在垂直方向上的角度。如果使用一个小角度，内容会看起来很大。如果使用一个大角度（广角），你会获得一个鱼眼效果，这会使内容变形，因为相机看到的内容必须通过拉伸或挤压来适应画布。
+
+西蒙使用的fov通常在[45, 75]。
+
+### Aspect ratio
+
+指相机视锥体的长宽比，通常使用画布的宽度除以高度。
+
+如果没有把相机添加进Scene，一切也会正常工作，但是这会在随后导致bug。
+
+### Near and far
+
+BUG：如果你使用一个极小值和极大值来作为 `near` 和 `far` ，比如 `0.0001` 和 `9999999` ，你可能会遇到一个名为 `z-fighting` 的BUG，它表现为2个面在竞争谁在上面。
+
+请使用合理的值，只在需要时才减小near和增大far。
+
+## OrthographicCamera
+
+它和PerspectiveCamera的区别是，它没有近大远小的效果（这种效果被称为透视），这意味着无论物体离相机多远，物体的大小都是恒定的。
+
+该相机没有fov和aspect ratio参数，取而代之的是left、right、top、bottom，这4个参数的含义是：以相机为几何中心，建立一个矩形，从几何中心到矩形上边界的距离为top，到右边界的距离为right，到下边界的距离为bottom，到左边界的距离为left，整个矩形就是该相机的视野范围，该相机的视线就像 RectAreaLight 一样向目标方向发射。
+
+top、right、bottom、left 4个参数接收“有向距离”，例如：
+
+```js
+new OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+```
+
+该相机也具有near和far参数。
+
+上例意味着我们要渲染一个正方形区域，正方形区域会被拉伸来适应画布尺寸，如果画布是矩形，那就会因为拉伸而产生变形。为了避免这种情况， 我们需要给left top right bottom使用aspect ratio，如下例：
+
+```js
+new THREE.OrthographicCamera(- 1 * aspectRatio, 1 * aspectRatio, 1, - 1, 0.1, 100)
+```
+
+## Controls
+
+DeviceOrientationControls - 陀螺仪控制器（在r134版本中被正式移除，因为该API无法在所有设备上获得稳定一致的表现）。
+
+FirstPersonControls - 第一人称浏览
+
+PointerLockControls - 隐藏指针（ [pointer lock JavaScript API](https://developer.mozilla.org/docs/Web/API/Pointer_Lock_API) ），用于制作第一人称FPS游戏。
+
+OrbitControls - 左键旋转，滚轮缩放，右键平移
+
+TrackballControls - 和 OribitControls一样，不过它可以在垂直方向上无限制旋转
+
+TransformControls - 拖动物体（三轴方向上）
+
+DragControls - 拖动物体（仅限于在垂直于摄像机视线方向的平面上）
+
+
+
+# 08 - fullscreen and resizing
+
+## aspect ratio
+
+如果改变了camera的某些属性，比如 `aspect` ，就需要更新投影矩阵，使用 `camera.updateProjectionMatrix()` 。
+
+## pixel ratio
+
+像素比是指：软件上的一个像素对应屏幕上的多少个物理像素，比如像素比2是指软件上一个像素对应物理上2×2个像素。
+
+以前的屏幕的像素比都是1，但是它限制了显示高清图像和超薄字体，于是Apple开始制造像素比为2的屏幕（称为视网膜屏幕），后来大多数的屏幕制造商都如此跟进了。
+
+你可以使用 `window.devicePixelRatio` 来获取屏幕的像素比，并用 `renderer.setPixelRatio` 方法来更改 renderer 的pixel ratio。但是我们不能简单的让 renderer 的 pixel ratio 等于屏幕的像素比，因为越高的像素比会带来更多的性能负荷，但是像素比2和3对人眼没有区别（相比像素比1，像素比2需要渲染4倍的像素，像素比3需要渲染9倍的像素），大于2的像素比不过是噱头或市场营销。所以我们应该将renderer 的像素比上限设置为2。
+
+```js
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+```
+
+
+
+# 09 - Geometries
+
+# 10 - Debug UI
+
+## Dat.GUI
+
+它是最受欢迎的 three.js debug 工具，可是已经很久没更新了（latest 2017.05.15），lil-gui 是 dat.gui的替代品，lil-gui可以像使用dat.gui一样来使用。
+
+```js
+const gui = new dat.GUI();
+
+gui.add(mesh.position, "y");                           // 数值控制
+gui.add(mesh.position, "x", -3, 3, 0.01);              // 滑动条控制
+gui.add(mesh.position, "z").min(-3).max(3).step(0.01); //
+gui.add(mesh, "visible").name("可见性");                // 重命名
+gui.addColor(parameters, "color").onChange(_ => material.color.set(parameters.color));
+gui.add(parameters, "spin");                           // 调用方法的按钮
+```
+
+> lil-gui 会根据visiible来判断是它是一个boolean，这真是太棒了。
+
+控制颜色需要使用 addColor 方法，因为 lil-dat 不知道你想要设定一个text、number还是color。它还需要使用中间变量parameters（其中，在一开始material就是用parameters.color作为入参），这是因为lil-dat无法从Color实例中读取到颜色值。最后使用onChange，是因为单纯的改变parameters.color无法改变material，需要一个listener来主动改变material的color。
+
+
+
+# 11 - Textures
+
+## 使用 Texture
+
+需要手动创建 `<image>` 元素，并监控图片的加载事件。在图片加载完成之前，texture 都是透明的。
+
+```js
+const image = new Image();
+const texture = new three.Texture(image);
+
+image.addEventListener("load", _ => texture.needsUpdate = true);
+image.src = "/door.jpg";
+
+const material = new three.MeshBasicMaterial({map: texture});
+```
+
+## 使用 TextureLoader
+
+`TextureLoader` 类的内部实现了上文的过程，包括图片加载与加载后更新纹理，它比上文的方式更简单。
+
+```js
+const loader = new three.TextureLoader();
+const texture = loader.load("door.jpg");
+const material = new three.MeshBasicMaterial({map: texture});
+```
+
+```js
+loader.load(
+	"url",
+    function onLoad() {},
+    function onProgress() {},
+    function onError() {}
+);
+```
+
+## 使用 LoadingManager
+
+如上文， `TextureLoader` 实例的 `load` 方法可以接收 `onLoad` 、`onProgress`  、 `onError` 来监控资源的加载，但是如果要同时加载许多的资源，又同时监控所有资源的加载，那么就需要为每一个 `load` 方法都绑定3个事件，这太麻烦了。 `LoadingManager` 可以解决这个问题。
+
+```js
+const manager = new three.LoadingManager();
+
+manager.onStart = _ => {};
+manager.onLaod = _ => {};
+manager.onProgress = _ => {};
+manager.onError = _ => {};
+
+const loader = new three.TextureLoader(manager);
+
+loader.load("1.jpg");
+loader.load("2.jpg");
+loader.load("2.jpg");
+...
+```
+
+这样，每个资源的加载就都自动绑定了4个事件。
+
+## Transforming the texture
+
+### Repeat
+
+```js
+texture.repeat.x = 2;
+texture.repeat.y = 3;
+texture.wrapS = three.RepeatWrapping; // x axis
+texture.WrapT = three.RepeatWrapping; // y axis
+```
+
+### Offset
+
+```js
+texture.offset.x = 0.5;
+texture.offset.y = 0.5;
+```
+
+偏移是这么计算的，假设x轴方向重复2次，则x轴方向的长度为2个单位，偏移0.5个单位，意味着整个纹理向左移动0.5个单位。对于y轴，偏移的正方向是下。
+
+### Rotation
+
+```js
+texture.rotation = Math.PI / 4;
+```
+
+对于Cube，默认情况下，每个面都会绕左下角（UV坐标原点）逆时针旋转45°。可以改变旋转中心：
+
+```js
+texture.center.x = 0.5;
+texture.center.y = 0.5;
+```
+
+UV坐标系的U轴正方向向右，V轴正方向向下，无论repeat多少次，(0.5, 0.5)都代表一个正方形的UV平面的几何中心。
+
+### Filtering and Mipmapping
+
+没有正对视线的平面的纹理会看起来很模糊，比如在正视一个正方体时，正方体的顶面的纹理会看起来很模糊，这种模糊的成因就是 filtering and the mipmapping。
+
+Mipmapping具体是指：three.js会基于图片的原始分辨率，创建出分辨率小一倍的新纹理，再创建出分辨率再小一倍的纹理，直至获得一个1×1的纹理，然后所有纹理都会被发送给GPU，GPU会挑选最合适的版本来作为最终纹理。比如对于1024×1024的图片，three.js会创建出1024×1024、512×512、256×256、128×128、64×64、32×32、16×16、8×8、4×4、2×2、1×1的多个纹理，所有纹理都会被发送给GPU，GPU会挑选最适合的版本来作为最终纹理。
+
+three.js和GPU内部处理了上述过程，我们只需要挑选滤波算法就好了，有2种算法：minification filter（缩小滤波） 和 magnification filter（放大滤波）。
+
+#### Minification filter
+
+应用场景：当纹理大于平面时，该如何缩小纹理以使其完全覆盖平面（缩小后，一个纹素小于一个像素）。
+
+可以通过texture的minFilter属性来修改缩小滤波。比如：
+
+```js
+texture.minFilter = three.NearestFilter;
+```
+
+> 使用分辨率很高的棋盘格纹理，可以清楚看出缩小滤波的作用：checkerboard-1024x1024.png
+
+#### Magnification filter
+
+应用场景：当纹理小于平面时，该如何放大纹理以使其完全覆盖平面（放大后，一个纹素大于一个像素）。
+
+可以通过texture的magFilter属性来修改放大滤波。比如：
+
+> 使用分辨率非常低的棋盘格纹理，可以清楚看出放大滤波的作用：checkerboard-8x8.png
+
+只有2种算法：
+
+- NearestFilter
+- LinearFilter（默认）
+
+使用LinearFilter时，棋盘格的边缘会非常模糊，使用NearestFilter，棋盘格的边缘非常锐利，所以NearestFilter对于像素风的纹理非常有利（比如我的世界）。比如，使用一张我的世界的纹理图片 （minecraft.png） 试试！。
+
+#### 性能
+
+所有滤波种，NearestFilter 算法的耗能最低！
+
+Mipmapping是针对minFilter的技术，如果minFilter使用了NearestFilter算法，则它可以不使用mipmapping，这时候请这么做，这会稍微减轻GPU的负荷。
+
+```js
+texture.generateMipmaps = false;
+texture.minFilter = three.NearestFilter;
+```
+
+## Texture format and optimisation
+
+### The weight
+
+- jpg：有损压缩，更轻量
+- png：无损压缩，更重量
+
+可以使用 [TinyPNG](https://tinypng.com/) 来压缩图片，尝试把图片压缩成 ”显示效果无明显变差但体积更小“ 的状态之后再使用。
+
+### The resolution
+
+- 降低分辨率：图像的每个像素都会存入GPU，而且Mipmapping技术倍增了像素的数量，然而GPU是由存储限制的，因此要尽可能降低图像的分辨率。
+- 宽高是2的幂：由于Mipmapping技术，three.js强制要求纹理的宽度和高度必须是2的幂，如果不是2的幂，three.js会把它们拉甚至最接近的2的幂，这会导致纹理视觉效果变差，控制台也会发出警告。
+
+
+
+# 12 - Materials
+
+## MeshBasicMaterial
+
+### alphaMap
+
+一种使用纹理来控制透明度的技术，使用该技术的前提是令 `transparent: true` 。
+
+```js
+material.transparent = true;
+material.alphaMap = texture_alpha;
+```
+
+texture_alpha是一张灰度图（只有黑色、白色、灰色），将该纹理作为几何体的alphaMap属性后，纹理中黑色的部分将完全透明，白色的部分将完全不透明，灰色的部分将部分透明。
+
+### side
+
+避免使用 three.DoubleSide，因为渲染双面意味着需要渲染两倍数量的三角形。
+
+## MeshNormalMaterial
+
+法线信息被编码在每个顶点中，每块区域显示什么颜色取决于该区域的法线朝向相对于camera的关系，而每块区域的法线是由顶点的法线插值来得到的。比如对于一个球，球上的每个平面不会只显示一种颜色，而是显示多种颜色，因为每个平面被划分成更小的区域，每块区域都通过插值得到了不同的法线，所以颜色不同，但是“一块区域”的粒度是多大，我不知道。
+
+`flatShading: true` 可以禁用这种插值，使每个平面只显示一种颜色。
+
+## MeshMatcapMaterial
+
+它是一种非常好看又非常节能的材质。使用它的前提是为其提供一个matcap图片：
+
+```js
+material.matcap = texture_matcap;
+```
+
+这个材质会根据每个区域的法线朝向相对于camera的关系来决定拾取matcap图上的哪个像素的颜色，每个区域的法线朝向通常插值自附近的顶点的法线朝向（原理和MeshNormalMaterial的一样），所以它也有 `flatShading` 属性。
+
+由于matcap图上的颜色有亮有暗，所以最后该材质会呈现出一种具有光照的效果，但这只是一种错觉，实际上光照无法影响该材质，所以无法通过调整光线来改变材质的效果。
+
+## MeshDepthMaterial
+
+这种材质会根据每块区域距离camera的远近来着色，近白远黑。
+
+## Adding a few lights
+
+下面的材质需要光照才能看见。
+
+## MeshLambertMaterial
+
+它是光照材质中性能最佳的材质，缺点是如果仔细观察球状的几何体，就会看到奇怪的图案。
+
+## MeshPhongMaterial
+
+该材质的显示效果非常类似MeshLambertMaterial，不过奇怪图案不太可见了。
+
+- 属性 `shininess`： 值越大，反射越亮
+- 属性 `specular` ：反射的颜色
+
+## MeshToonMaterial
+
+卡通风格的材质，默认情况下这种材质只展示2种颜色（一种表示阴影，一种表示光亮），你可以使用 `gradientMap` 属性来控制颜色的阶数。
+
+`gradientMap` 属性接收 texture，这种texture是渐变贴图，用来控制颜色渐变的阶数，这种材质的 `minFilter` 和 `magFilter` 必须被设置为 `three.NearestFilter` （否则会失去卡通效果）。
+
+```js
+texture_gradient.minFilter = three.NearestFilter;
+texture_gradient.magFilter = three.NearestFilter;
+texture_gradient.generateMipmaps = false; // minFilter选用了NearestFilter，就可以省去Mipmapping了！
+material.gradientMap = texture_gradient;
+```
+
+texture_gradient 是一张灰度图，比如这张图只有5个像素（1行5列），这5个像素从左向右灰度值逐级递增。
+
+## MeshStandardMaterial
+
+这种材质是PBR的，PBR是指 physically based rendering（基于物理的渲染），这种材质更接近真实效果，并且拥有 `roughness` 和 `metalness` 来控制粗糙度和金属相似度。
+
+它被称为 standard 是因为 PBR 正在成为各种软件和库用来制作仿真材质的标准。
+
+- `roughness` ：粗糙度，[0, 1] ，0表示镜面反射，1表示完全漫反射。如果有roughnessMap，则每个像素上的粗糙度是roughness和roughnessMap（映射到该像素上的值）的乘积。
+
+- `metalness` ：金属相似度，[0, 1] ，0表示非金属材质比如木材石材，1表示金属，之间之表示生锈金属。如果有metalnessMap，则每个像素上的金属相似度是metalness和metalnessMap（映射到该像素上的值）的乘积。
+
+- `roughnessMap` ：粗糙度贴图，使用该贴图的绿色通道
+
+- `metalnessMap` ：金属相似度贴图，使用该贴图的蓝色通道。
+
+- `aoMap` ：环境遮挡贴图（ambient occlusion map），使用该贴图的红色通道。该贴图用于控制细节处的阴影，比如有一张图，描述一个门，门缝隙部分的红色通道值低，将该贴图作为 aoMap 后，门缝位置的像素的颜色更深，这加深了门缝像素与周边像素的对比度，就可以勾勒出一种不平坦的效果，显得门缝更真实。
+
+  使用 aoMap 之前，必须提供 `uv2` 坐标，uv2坐标用来辅助几何体标定（放准确）该贴图。一种偷懒的创建uv2的方式是：把uv赋值给uv2：
+
+  ```js
+  geometry.setAttribute("uv2", new three.BufferAttribute(geometry.attributes.uv.array, 2));
+  ```
+
+- `aoMapIntensity` ：控制 aoMap 的强度，默认1，0代表不遮挡。
+
+- `displacementMap` ：位移贴图。通过移动顶点来创建浮雕，被移动的顶点也可以投射阴影，遮挡其它对象。
+
+  ```js
+  material.displacementMap = texture_height;
+  ```
+
+  它的运作原理是，mesh 的所有顶点会被映射为位移贴图中的像素，根据该像素的值来决定位移的程度（白色位移最多，黑色无位移）。如果 mesh 的顶点数量很少，哪怕使用了位移贴图也无法制造浮雕效果，因为缺少创建浮雕的顶点，比如：
+
+  ```js
+  new three.PlaneGeometry(1, 1, 1, 1);     // 只有4个顶点，使用位移贴图也无法创造浮雕
+  new three.PlaneGeometry(1, 1, 100, 100); // 顶点丰富，使用位移贴图可以创造较精细的浮雕
+  ```
+
+- `displacementScale` ：位移贴图的位移程度，默认为1（使用displacementMap后才有效）
+
+- `displacementBias` ：位移贴图的初始偏移量，默认为0（使用displacementMap后才有效）
+
+- `normalMap` ：法线贴图。使用RGB通道。它不会改变形状，而是改变表面的法线方向，进而改变光照效果。比如对于一扇门，改变门缝处的法线，使门缝反射光线的方向不一样，可以让门缝更加真实，否则如果门缝和门板反射光线的方向一致，门缝就会很假。而且使用了 `displacementMap` 后，隆起部分的法线方向和隆起之前是一样的，这会导致隆起部分的反光和非隆起部分的反光是一样的，这就很假，所以更需要使用normalMap来改变隆起部分的反光。
+
+- `normalScale` ：法线贴图的影响程度，范围是[0, 1]，默认值是 new Vector2(1, 1)
+
+- `alphaMap` ：略
+
+## MeshPhysicalMaterial
+
+和 MeshStandardMaterial 差不多，不过它额外支持一个透明图层效果，类似于表面再覆盖一层透明玻璃。
+
+示例：https://threejs.org/examples/#webgl_materials_physical_clearcoat
+
+## PointsMaterial
+
+## ShaderMaterial and RawShaderMaterial
+
+可以创建专属material
+
+## Environment map
+
+`envMap` ：环境贴图，是多种材质都有的一种属性。环境纹理是场景周围事物的图像，使用环境纹理作为贴图可以让物体表面反射出周围场景的图像。
+
+```js
+const material = new three.MeshStandardMaterial();
+
+material.metalness = 1; // 金属相似度拉满
+material.roughness = 0; // 镜面反射
+```
+
+环境纹理不是普通的图像，而是立体环境图像（cube environment map），立体环境图像由6张普通图像组成，每张图像对应环境的一个侧面，6张图像组成一个方体cube。
+
+只能使用 CubeTextureLoader 来创建立体环境纹理：
+
+```js
+const loader = new three.CubeTextureLoader();
+const texture = loader.load([
+    "px.png",
+    "nx.png",
+    "py.png",
+    "ny.png",
+    "pz.png",
+    "nz.png"
+]);
+
+material.envMap = texture;
+```
+
+此外，scene也可以使用立体环境纹理来创建包围盒：
+
+```js
+scene.background = texture_env;
+```
+
+## Where to find environment maps
+
+① 可从该站下载 HDRI ：https://polyhaven.com/ （Free\HDRI\Model\Texture）
+
+② 分割 HDRI ：https://matheowis.github.io/HDRI-to-CubeMap/ ，可将 .hdr 格式的 HDRI 分割成 cubemap
+
+③ 分割 cubemap：自己使用图像编辑工具将 cubemap分割成6张图像
+
+④ 使用：使用 CubeTextureLoader 与 6 张图像来创建 envMap 所需的纹理
+
+
+
+HDRI：高动态范围图像（High Dynamic Range Imaging），它相比普通图像包含更多的数据与更大的亮度范围，它能呈现更真实的结果，但它不是 cubemap，也不一定是全景图。由该站下载的 HDRI 是.hdr或.exr文件。
+
+
+
