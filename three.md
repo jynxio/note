@@ -527,3 +527,72 @@ HDRI：高动态范围图像（High Dynamic Range Imaging），它相比普通�
 
 
 
+# 13 - 3D Text
+
+## 字体文件
+
+需要提供 JSON 格式的字体文件，你可以通过[它](http://gero3.github.io/facetype.js/)来将普通的字体转换为 JSON 字体文件。three.js 包内也提供了 JSON 字体文件，见 `three/examples/fonts/...` 文件夹。
+
+## Demo
+
+```js
+import { FontLoader } from "FontLoader.js";
+import { TextGeometry } from "TextGeometry.js";
+
+const loader_font = new FontLoader();
+
+loader_font.load(
+	"helvetiker_regular.typeface.json",
+    font => {
+        
+        const text_geometry = new TextGeometry(
+        	"Hello Three.js",
+            {
+                font: font,
+                size: 0.5,
+                height: 0.2,
+                curveSegments: 12,
+                bevelEnabled: true,
+                bevelThickness: 0.03, // 会影响居中
+                bevelSize: 0.02,      // 会影响居中
+                bevelOffset: 0,
+                bevelSegments: 5,
+            }
+        );
+        const text_material = new three.MeshBasicMaterial();
+        const text = new three.Mesh(text_geometry, text_material);
+        
+    },
+);
+```
+
+## Bounding
+
+bounding 用于记录 geometry 占据了多大的空间，有 box 和 sphere。three.js 使用 bounding 来判断物体是否位于视野范围内，如果不在视野范围内，就不会渲染它们，这被称为 “视锥体剔除”。
+
+three.js 默认使用 sphere bounding。
+
+## 居中
+
+我们使用 box bounding 来居中 text，使用之前必须先计算出它：
+
+```js
+text_geometry.computeBoundingBox();
+```
+
+然后使其居中（移动geometry比移动mesh好的多）：
+
+```js
+text_geometry.translate(
+	-(text_geometry.boundingBox.max.x - 0.02) * 0.5, // 需要减去 bevelSize 的值
+    -(text_geometry.boundingBox.max.y - 0.02) * 0.5, // 需要兼续 bevelSize 的值
+    -(text_geometry.boundingBox.max.z - 0.03) * 0.5, // 需要减去 bevelThickness 的值
+);
+```
+
+另一种快捷的居中方法：
+
+```js
+text_geometry.center();
+```
+
