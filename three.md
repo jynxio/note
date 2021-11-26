@@ -572,6 +572,8 @@ bounding 用于记录 geometry 占据了多大的空间，有 box 和 sphere。t
 
 three.js 默认使用 sphere bounding。
 
+geometry的 boundingBox 和 boundingSphere 的默认值都是 null，如果要用，就要先调用 compute... 方法去计算。
+
 ## 居中
 
 我们使用 box bounding 来居中 text，使用之前必须先计算出它：
