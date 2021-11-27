@@ -602,3 +602,78 @@ text_geometry.center();
 
 # 14 - Go live
 
+
+
+# 15 - Lights
+
+## AmbientLight
+
+如果只使用 AmbientLight ，则会得到和使用 MeshBasicMaterial 一样的效果，因为几何体的每个面都受到了同样的光照。
+
+现实中，背光面不完全是黑的，因为光线的反射最终照射到了背光面。但是 three.js 不支持光线反射（因为性能原因），所以通常用 AmbientLight 来模拟环境中的漫反射。
+
+## DirectionalLight
+
+## HemisphereLight
+
+半球光
+
+```js
+new three.HemisphereLight(sky_color, ground_color, intensity);
+```
+
+场景中所有面向 sky 的面将被 sky_color 颜色的光照射，面向 ground 的面将被 ground_color 颜色的光照射。
+
+半球光的照射距离是无限的，半球光是不能旋转的，Y 轴永远是垂直于 sky 面和 ground 面，不过可以设置 sky 在上（+Y）还是在下（-Y）。默认情况下，半球光的 position 是 (0, 1, 0)，它的 sky 在 +Y， ground 在 -Y。
+
+## PointLight
+
+点光源，它的体积无限小，向所有方向均匀的照射。
+
+默认位置在 （0,0,0)，默认情况下它的照射距离是无限远且强度永不衰减，可以用 `distance` 和 `decay` 来控制。
+
+> 我不知道衰减是如何计算的。
+
+## RectAreaLight
+
+该光源就像方向光和漫反射光的混合物，就像拍摄场地的曝光灯，比如：
+
+```js
+new three.RectAreaLight(0xff0000, 1, 1, 1);
+```
+
+这是一个 1×1 的正方形灯，它的几何中心默认是 （0,0,0)，它面朝 -Z 方向，只有在它前方的物体会被照射到，后方的物体不会被照射到。
+
+它的照射方向不只是 -Z，位于 (0, 1, -1) 也会被照到，所以它就像曝光灯。
+
+它的光照会衰减，沿着方向衰减，比如(0, 1, -1) 接收到的光比 (0, 2, -1) 的更多。还有沿着距离衰减，比如(0, 1, -1)接收到的光比 (0, 1, -2)的更多，但是没有接口可以设置衰减。
+
+它支对 MeshStandardMaterial 和 MeshPhysicalMaterial 有效。
+
+## SpotLight
+
+聚光灯，形似圆锥体，参数列表如下：
+
+- color：颜色
+- intensity：强度
+- distance：距离
+- angle：圆锥体的张角，最大值是 Math.PI / 2
+- penumbra：光影边缘的模糊程度，默认值是0（边缘锐利）
+- decay：衰减
+
+聚光灯的方向是从它的位置朝向 `target` 的位置， `target` 的默认位置是 (0, 0, 0) 。target 是一个 Object3D，不过它还没有被添加进场景，所以如果想要改变聚光灯的朝向，就必须将 target 添加进场景，然后改变target 的 position。
+
+```js
+spot_light.target.position.set(0, 0, 1);
+scene.add(spot_light.target);
+```
+
+## Performance
+
+light 会带来很多性能负荷，因为它会使 GPU 进行很多额外的计算，比如面到光的距离，面朝向光的程度，面是否在聚光灯内......
+
+尽可能少使用光源，尽可能使用能耗低的光源，光源能耗排行：
+
+- 低消耗：AmbientLight、HemisphereLight
+- 一般消耗：DirectionalLight、PointLight
+- 高消耗：SpotLight、RectAreaLight
