@@ -686,3 +686,9 @@ Baking 是指将光照效果烤进纹理之中，让纹理自带光照效果，�
 
 ## Helpers
 
+
+
+# 16 - Shadows
+
+- `core shadow` ：发生在物体自己表面上的阴影。
+- `drop shadow` ：投射到另一个物体表面上的阴影。
