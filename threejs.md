@@ -677,3 +677,12 @@ light 会带来很多性能负荷，因为它会使 GPU 进行很多额外的计
 - 低消耗：AmbientLight、HemisphereLight
 - 一般消耗：DirectionalLight、PointLight
 - 高消耗：SpotLight、RectAreaLight
+
+## Baking
+
+Baking 是指将光照效果烤进纹理之中，让纹理自带光照效果，这样就可以减少使用光源，Three.js journey 首页的模型采用了 baking。baking的缺点是光照效果是固定死的。
+
+需要借助 3D 软件来实现 Baking。
+
+## Helpers
+
