@@ -682,7 +682,7 @@ light 会带来很多性能负荷，因为它会使 GPU 进行很多额外的计
 
 ## Baking
 
-Baking 是指将光照效果烤进纹理之中，让纹理自带光照效果，这样就可以减少使用光源，Three.js journey 首页的模型采用了 baking。baking的缺点是光照效果是固定死的。
+Baking 是指将光源对物体的core shadow效果集成进纹理中，让纹理自带core shadow效果，这样就可以减少使用光源，Three.js journey 首页的模型采用了 baked light。这样做的缺点是core shadow效果是固定死的。
 
 需要借助 3D 软件来实现 Baking。
 
@@ -692,9 +692,113 @@ Baking 是指将光照效果烤进纹理之中，让纹理自带光照效果，�
 
 # 16 - Shadows
 
+## Core shadow and Drop shadow
+
 - `core shadow` ：发生在物体自己表面上的阴影。
 - `drop shadow` ：投射到另一个物体表面上的阴影。
 
+## How it works
 
+We won't detail how shadows are working internally, but we will try to understand the basics.
+
+When you do one render, Three.js will first do a render for each light supposed to cast shadows. Those renders will simulate what the light sees as if it was a camera. During these lights renders, [MeshDepthMaterial](https://threejs.org/docs/index.html#api/en/materials/MeshDepthMaterial) replaces all meshes materials.
+
+The results are stored as textures and named shadow maps.
+
+You won't see those shadow maps directly, but they are used on every material supposed to receive shadows and projected on the geometry.
+
+Here's an excellent example of what the directional light and the spotlight see: https://threejs.org/examples/webgl_shadowmap_viewer.html
+
+## How to activate shadows
+
+第一步：
+
+```js
+renderer.shadowMap.enabled = true;
+```
+
+第二步：如果物体可以对他人制造drop shadow，则激活它的 `castShadow` 属性。如果物体可以接收drop shadow，则激活它的 `receiveShadow`。
+
+```js
+sphere.castShadow = true;
+plane.receiveShadow = true;
+```
+
+最后一步：激活光源的 `castShadow` 属性，目前只有3种光源可以投射出 drop shadow 
+
+- `PointLight`
+- `DirectionalLight`
+- `SpotLight`
+
+```js
+directional_light.castShadow = true;
+```
+
+## Shadow map optimizations
+
+### Render size
+
+在《How it works》中讲述了three.js为每个光源都制造了 shadow maps，你可以通过 Light 的 `shadow`属性来控制它。
+
+默认情况下，shadow map的尺寸是512*512（性能考虑），增大这个尺寸可以让drop shadow更细腻，但是要确保宽高是2的幂，比如：
+
+```js
+directional_light.shadow.mapSize.width = 1024;
+directional_light.shadow.mapSize.height = 1024;
+```
+
+### The camera of the shadow
+
+`DirectionalLight`的阴影相机是1个`OrthographicCamera`
+
+`SpotLight`的阴影相机是1个`PerspectiveCamera`
+
+`PointLight`的阴影相机是1个 `PerspectiveCamera` ，其它两个光源的阴影相机只会计算一次shadow maps，但是点光源的阴影相机会计算6次shadow maps，因为点光源可以向所有方向制造drop shadow。three.js让阴影相机看向6个方向，来实现覆盖全方向，这6个方向是上下左右前后，阴影相机的垂直和水平张角都是45°（视锥体是四棱锥），这样子6次阴影相机刚好组成一个cube，覆盖了所有方向。查看PointLight的camera时会发现camera的朝向是向下的，因为6次观看中最后一次是看向下方。
+
+### Near and far
+
+three.js使用camera来模拟光的照射，camera看得见的部分是向光面，看不见的部分就是背光面。既然光源内部使用了camera，那自然可以修改camera的属性，比如 `near` 和 `far` 。
+
+> 光源的光的照射范围 和 光源可以cast shadow的范围是不一样的，使用LightHelper和CameraHelper来看看就知道了。有些地方光线照射到了，但是不会计算drop shadow。
+
+使用 `near` 和 `far` 不能改善drop shadow的质量，只能debug，比如为什么这个地方光明明照到了却没有drop shadow，又比如为什么这个物体的drop shadow忽然被截断了？
+
+### Amplitude
+
+是指相机的视野范围。缩小视野范围可以让阴影更细腻，因为`mapSize`的分辨率不变，而纹理尺寸变小了，则纹素密度就增大了。
+
+对于`DirectionalLight`，因为相机是`OrthographicCamera`，所以要通过`top`、`right`、`bottom`、`left`来调整范围。
+
+```js
+directional_light.shadow.camera.top = 2;
+directional_light.sahdow.camera.right = 2;
+directional_light.shadow.camera.bottom = -2;
+directional_light.shadow.camera.left = -2;
+```
+
+### Blur
+
+```js
+directional_light.shadow.radius = 10;
+```
+
+`three.PCFSoftShadowMap`不支持`radius` 
+
+> 我猜：它好像是通过滤波来实现模糊效果的，比如对shadow map做一个10*10的均值滤波，那么锐利的边缘就会变模糊了。
+
+### Shadow map algorithm
+
+- `three.BasicShadowMap` ：性能最好，质量最差
+- `three.PCFShadowMap`：性能稍差，边缘平滑（默认算法）
+- `three.PCFSoftShadowMap`：性能稍差，边缘柔和（指浅浅的blur效果）
+- `three.VSMShadowMap`：性能稍差，more constraints, can have unexpected results
+
+```js
+renderer.shadowMap.type = three.PCFSoftShadowMap;
+```
+
+## SpotLight
+
+// 从此开始
 
 准备写入笔记：光源的照射范围和阴影照射范围是不一样的，你要逐个验证每个具有阴影效果的光源，现在已经确认了SpotLight
