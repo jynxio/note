@@ -755,6 +755,8 @@ directional_light.shadow.mapSize.height = 1024;
 
 `PointLight`的阴影相机是1个 `PerspectiveCamera` ，其它两个光源的阴影相机只会计算一次shadow maps，但是点光源的阴影相机会计算6次shadow maps，因为点光源可以向所有方向制造drop shadow。three.js让阴影相机看向6个方向，来实现覆盖全方向，这6个方向是上下左右前后，阴影相机的垂直和水平张角都是45°（视锥体是四棱锥），这样子6次阴影相机刚好组成一个cube，覆盖了所有方向。查看PointLight的camera时会发现camera的朝向是向下的，因为6次观看中最后一次是看向下方。
 
+显然，使用PointLight来制造drop shadow是最耗费性能的，因此尽可能减少使用开启了`castShaodw`的PointLight。
+
 ### Near and far
 
 three.js使用camera来模拟光的照射，camera看得见的部分是向光面，看不见的部分就是背光面。既然光源内部使用了camera，那自然可以修改camera的属性，比如 `near` 和 `far` 。
@@ -797,8 +799,19 @@ directional_light.shadow.radius = 10;
 renderer.shadowMap.type = three.PCFSoftShadowMap;
 ```
 
-## SpotLight
+## 重叠的阴影
 
-// 从此开始
+three.js中，如果有2个阴影重叠在一起，那么重叠区域的阴影的颜色是2个阴影颜色之和。但是在真实世界里，重叠区域的阴影的颜色是2个阴影中较深的颜色。
 
-准备写入笔记：光源的照射范围和阴影照射范围是不一样的，你要逐个验证每个具有阴影效果的光源，现在已经确认了SpotLight
+这是一个缺陷，目前无法解决。
+
+## 阴影相机范围小于光照范围
+
+drop shadow是借助阴影相机来制造的，阴影相机所覆盖的范围小于光照所能覆盖的范围。
+
+## Baking shadows
+
+这里的Baking shadows和《15-Lights》中的Baking是同一种技术，只不过这个Baking是将drop shadow集成进开启了`receiveShadow`的物体的纹理中，《15-Lights》的Baking是将core shadow集成进物体自己的纹理中。
+
+Baking的好处当然是节省性能，坏处是Baking shadows不能自动跟随物体运动，如果要它跟随物体运动，我们就要手动控制这个Baking shadows。
+
