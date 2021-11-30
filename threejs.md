@@ -109,6 +109,10 @@ gsap.to(mesh.position, {durationL 1, delay: 1, x: 2}); // 它内部使用request
 
 BUG：如果你使用一个极小值和极大值来作为 `near` 和 `far` ，比如 `0.0001` 和 `9999999` ，你可能会遇到一个名为 `z-fighting` 的BUG，它表现为2个面在竞争谁在上面。
 
+> z-fighting：当2个face的位置一样或非常接近的时候，GPU不知道哪个在前哪个在后，然后你就会看到非常怪异的像素冲突现象。
+
+> 为什么这么设置near和far会引发z-fighting？我猜测是因为near和far之间的分段数量是固定的，当near和far的差值越大，一段的跨度就越大，一段之内的物体会被认为是同一个位置的物体。
+
 请使用合理的值，只在需要时才减小near和增大far。
 
 ## OrthographicCamera
@@ -815,3 +819,19 @@ drop shadow是借助阴影相机来制造的，阴影相机所覆盖的范围小
 
 Baking的好处当然是节省性能，坏处是Baking shadows不能自动跟随物体运动，如果要它跟随物体运动，我们就要手动控制这个Baking shadows。
 
+# 17 - Haunted house
+
+添加一个雾：
+
+```js
+// 第一步
+const fog = new three.Fog(0x262837, 1, 15);
+scene.fog = fog;
+
+// 第二步
+scene.background = new three.Color(0x262837);
+```
+
+可以通过 `renderer.setClearColor(0x262837);` 来替代 `scene.background = new three.Color(0x262837)`，他俩是一样的。
+
+如果只做第一步，那么就只能看见物体变模糊，但是看不见雾本身，只有加了第二步才能看见飘在空中的雾。
