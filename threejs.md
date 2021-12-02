@@ -837,3 +837,8 @@ scene.background = new three.Color(0x262837);
 如果只做第一步，那么就只能看见物体变模糊，但是看不见雾本身，只有加了第二步才能看见飘在空中的雾。
 
 > Issuse: [WebGLRenderer: Difference between Scene.background and setClearColor() #22340](https://github.com/mrdoob/three.js/issues/22340)
+
+
+
+# 18 - Particles
+
