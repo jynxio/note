@@ -842,3 +842,66 @@ scene.background = new three.Color(0x262837);
 
 # 18 - Particles
 
+## Introduction
+
+西蒙：The downside is that each particle is composed of a plane (two triangles) always facing the camera.（缺点是每个粒子都由一个始终朝向相机的平面组成，而一个平面由2个三角形组成）。
+
+## Sphere particles
+
+使用Three.js内建的Geometry可以快速的创建几何体的粒子效果，比如使用粒子来显示球体的每个顶点：
+
+```js
+const geometry = new three.SphereGeometry(1, 32, 32);
+const material = new three.PointsMaterial({size: 0.02});
+const particle = new three.Points(geometry, material);
+```
+
+以前我查看内建的Geometry的position属性的时候，以为内建的Geometry有很多多余的点，直至看到这个粒子球才发现，没有顶点是多余的。
+
+![image-20211202100055306](C:/Users/Lenovo/AppData/Roaming/Typora/typora-user-images/image-20211202100055306.png)
+
+## Custom Particles
+
+创建一个粒子群也非常简单：
+
+```js
+// Geometry
+const geometry = new three.BufferGeometry();
+
+const count = 5000;
+const positions = new Float32Array(count * 3);
+
+for (let i = 0; i < positions.length; i++) positions[i] = (Math.random() - 0.5) * 10;
+
+geometry.setAttribute("position", new three.BufferAttribute(positions, 3));
+
+// Material
+const material = new three.PointsMaterial({size: 0.02});
+
+// Particle
+const particle = new three.Points(geometry, material);
+```
+
+当粒子的数量非常非常多时，比如 `count = 500000` ，就会看到所有粒子描摹出一个正方体的形状。
+
+![image-20211202100714859](C:/Users/Lenovo/AppData/Roaming/Typora/typora-user-images/image-20211202100714859.png)
+
+## Color, map and alpha map
+
+对 `PointsMaterial` 应用[粒子纹理](https://www.kenney.nl/assets/particle-pack)可以让粒子做出火、烟、星、心、火花、电、魔法等的效果。
+
+具体见教程。
+
+使用粒子纹理会带来一些遮挡问题，具体见教程的描述，下面是解决这些问题的手段：
+
+### use alphaTest
+
+```js
+new three.PointsMaterial({alphaTest: 0.001});
+```
+
+`alphaTest` 属性可以让 WebGL 根据像素的透明度来选择性的渲染。 `alphaTest` 的属性值属于 `[0, 1]`，比如 `alphaTest = 0.001`，如果某个像素的透明度小于0.001，WebGL就不会渲染这个像素。
+
+`alphaTest` 要结合  `alphaMap` 一起使用，因为后者能控制每个像素的透明度。
+
+### use depthTest
