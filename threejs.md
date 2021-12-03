@@ -905,3 +905,5 @@ new three.PointsMaterial({alphaTest: 0.001});
 `alphaTest` 要结合  `alphaMap` 一起使用，因为后者能控制每个像素的透明度。
 
 ### use depthTest
+
+`Material` 实例有一个名为深度测试的属性 `depthTest` ，默认值为 `true` 。它的具体意思是：对于所有使用了激活了深度测试属性的材质的物体，WebGL会按照物体距离Camera的远近来渲染，离远的先渲染，近的后渲染。
