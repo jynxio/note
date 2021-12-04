@@ -842,6 +842,8 @@ scene.background = new three.Color(0x262837);
 
 # 18 - Particles
 
+> 这一节有好多都弄不懂，比如depthTest、depthWrite、blending，如果你要写粒子，请还是参照原教程去写吧！
+
 ## Introduction
 
 西蒙：The downside is that each particle is composed of a plane (two triangles) always facing the camera.（缺点是每个粒子都由一个始终朝向相机的平面组成，而一个平面由2个三角形组成）。
@@ -892,9 +894,9 @@ const particle = new three.Points(geometry, material);
 
 具体见教程。
 
-使用粒子纹理会带来一些遮挡问题，具体见教程的描述，下面是解决这些问题的手段：
+使用粒子纹理会带来一些遮挡问题，具体见教程的描述，下面是解决这些问题的手段，每种手段都是独立使用的，没有混在一起用：
 
-### use alphaTest
+### using alphaTest
 
 ```js
 new three.PointsMaterial({alphaTest: 0.001});
@@ -904,6 +906,79 @@ new three.PointsMaterial({alphaTest: 0.001});
 
 `alphaTest` 要结合  `alphaMap` 一起使用，因为后者能控制每个像素的透明度。
 
-### use depthTest
+### using depthTest
 
-`Material` 实例有一个名为深度测试的属性 `depthTest` ，默认值为 `true` 。它的具体意思是：对于所有使用了激活了深度测试属性的材质的物体，WebGL会按照物体距离Camera的远近来渲染，离远的先渲染，近的后渲染。
+`Material` 实例有一个名为深度测试的属性 `depthTest` ，默认值为 `true` 。
+
+> https://zhuanlan.zhihu.com/p/151649142
+>
+> 深度：
+>
+> 我们来了解下 webgl 中的深度到底是怎么回事儿，首先 webgl 中，深度会存储在 depth buffer 中，它和普通的颜色缓冲一样，只是存储的是深度值而已。深度值的精度一般有16位、24位和32位float，比较常用的深度精度为24位。
+>
+> 深度测试：
+>
+> 片元在绘制过程中，会将像素的深度值与当前深度缓冲区中的值进行比较，如果大于等于深度缓冲区中值，则丢弃这部分;否则利用这个像素对应的深度值和颜色值，分别更新深度缓冲区和颜色缓冲区。这一过程称之为深度测试(Depth Testing)
+
+禁用材质的深度测试可以很好的解决粒子纹理的遮挡问题，但他也会引发新的问题，比如：
+
+![image-20211204010310782](C:/Users/Lenovo/AppData/Roaming/Typora/typora-user-images/image-20211204010310782.png)
+
+### using depthWrite
+
+禁深度写入就可以解决上述问题了，禁用深度写入后该材质就不会再更新深度缓冲区。
+
+### Blending
+
+```js
+material.blending = three.AdditiveBlending;
+```
+
+如此设置后，在渲染某个像素的颜色时，不只是单纯的擦除原颜色，绘制新颜色，而是将新旧颜色叠加在一起，叠加后的颜色看起来更饱和，饱和的极限是白色。
+
+![image-20211204165545482](C:/Users/Lenovo/AppData/Roaming/Typora/typora-user-images/image-20211204165545482.png)
+
+不过，这种效果会增加性能负荷。
+
+### vertexColors（顶点着色）
+
+使用顶点着色可以使每一个粒子都呈现不同的颜色，但又可以保持只使用一个材质。
+
+```js
+// 顶点的数量
+const count = 20000;
+
+// 创建顶点的坐标和颜色（坐标由xyz组成，颜色由rgb组成，所以它们都需要count*3次迭代）
+const positions = new Float32Array(count * 3);
+const colors = new Float32Array(count * 3);
+
+for (let i = 0; i < count * 3; i++) {
+    
+    positions[i] = (Math.random() - 0.5) * 10;
+    colors[i] = Math.random(); // r,g,b的值∈[0, 1]
+    
+}
+
+// Geometry
+const geometry = new three.BufferGeometry();
+geometry.setAttribute("position", new three.BufferAttribute(positions, 3));
+geometry.setAttribute("color", new three.BufferAttribute(colors, 3));
+
+// Material
+const material = new three.PointsMaterial();
+material.vertexColors = true; // 激活顶点着色
+```
+
+注意，material的color是主颜色，每个顶点最后呈现的颜色是顶点颜色和主颜色相乘的结果，如果把主颜色设置为黑色，则每个顶点就都是黑色了。
+
+### Animate
+
+可以通过改变 position 属性来控制单个粒子的运动，也可以通过对整个粒子的 object3D实例实施运动。
+
+如果要改变position，则一定要用needsUpdate，对attributeBuffer的改变才能生效。
+
+```js
+geometry.attributes.position.needsUpdate = true;
+```
+
+当然，不断地更新position属性会带来性能负荷，如果粒子的数量非常多，几万？几十万？那这种负荷就会很大，因为每帧都要重新计算每个粒子的位置。
