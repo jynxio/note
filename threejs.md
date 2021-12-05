@@ -470,6 +470,26 @@ texture_gradient 是一张灰度图，比如这张图只有5个像素（1行5列
 
 - `alphaMap` ：略
 
+> Diffuse/Albedo/Basecolor 漫反射
+>
+> Reflection/Specular 反射
+>
+> Metalness 金属度
+>
+> Glossiness 光泽度
+>
+> Roughness 粗糙度
+>
+> Normal 法线
+>
+> Displacement/Height 置换
+>
+> Bump 凹凸
+>
+> Ambient Occlusion 环境光遮蔽
+
+
+
 ## MeshPhysicalMaterial
 
 和 MeshStandardMaterial 差不多，不过它额外支持一个透明图层效果，类似于表面再覆盖一层透明玻璃。
