@@ -960,6 +960,12 @@ material.blending = three.AdditiveBlending;
 
 不过，这种效果会增加性能负荷。
 
+而且，它还会带来透明效果！前面方体遮挡了后面的方体，重叠区域的颜色饱和度更高，最终看起来就像是透过前面的方体看见后面的方体。
+
+实际上，非重叠区域的颜色值和禁用 `blending` 时方体的原本的颜色值是一样的，所以这种透视效果是由于颜色叠加得到的。
+
+![image-20211205210137804](C:/Users/Lenovo/AppData/Roaming/Typora/typora-user-images/image-20211205210137804.png)![image-20211205210516681](C:/Users/Lenovo/AppData/Roaming/Typora/typora-user-images/image-20211205210516681.png)
+
 ### vertexColors（顶点着色）
 
 使用顶点着色可以使每一个粒子都呈现不同的颜色，但又可以保持只使用一个材质。
@@ -1002,3 +1008,7 @@ geometry.attributes.position.needsUpdate = true;
 ```
 
 当然，不断地更新position属性会带来性能负荷，如果粒子的数量非常多，几万？几十万？那这种负荷就会很大，因为每帧都要重新计算每个粒子的位置。
+
+# 19 - Galaxy Generator
+
+星系粒子特效很棒，但是其中的数学不太懂。
