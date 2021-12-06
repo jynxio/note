@@ -1012,3 +1012,54 @@ geometry.attributes.position.needsUpdate = true;
 # 19 - Galaxy Generator
 
 星系粒子特效很棒，但是其中的数学不太懂。
+
+
+
+# 20 - Raycaster
+
+```js
+const ray_origin = new three.Vector3(-3, 0, 0);
+const ray_direction = new three.Vector3(1, 0, 0).normalize();
+
+const raycaster = new three.Raycaster();
+raycaster.set(ray_origin, ray_direction);
+
+const intersect = raycaster.intersectObject(object3d); // [...]
+const intersects = raycaster.intersectObjects([object_1, object_2]); // [...]
+```
+
+## 为什么 `intersectObject` 方法可以碰撞出2个结果？
+
+ray可以多次穿过同一个几何体。如下所示，ray两次穿过环面，绿色部分是相交的结果。
+
+在我自己的demo中，测试发现，当ray穿过2个face的交界线时，会产生”ray穿过一次几何体可以获得2个碰撞结果“的现象。
+
+![image-20211206233814574](C:/Users/Lenovo/AppData/Roaming/Typora/typora-user-images/image-20211206233814574.png)
+
+## 返回值
+
+- `distance` ray的origin到碰撞点的距离
+- `face` ray与geometry发生相交处的face
+- `faceIndex` face的index
+- `object` 相交的物体
+- `point` 相交点的确切坐标
+- `uv` 相交点在geometry上的uv坐标
+
+## 标准化设备坐标系
+
+屏幕设备坐标系的原点是左上角，X轴正方向是水平向右，Y轴正方向是垂直向下，x∈[0, 1920]，y∈[0, 1080]。
+
+标准化设备坐标系的原点是屏幕的几何中心，X轴正方向是水平向右，Y轴正方向是垂直向上，x∈[-1, 1]，y∈[-1, 1]。
+
+> window.clientX∈[0, 1919]，window.clientY∈[0, 1079]。
+>
+> 这意味着，根据屏幕设备坐标系来换算标准化设备坐标系时，只有这么算才能得到[-1, 1]的x和y，three.js官网的方法是不对的。
+>
+> ```js
+> window.addEventListener("mousemove", event => {
+>     x = (event.clientX / (window.innerWidth - 1)) * 2 - 1;
+> 	y = - (event.clientY / (window.innerHeight - 1)) * 2 + 1;
+> });
+> ```
+>
+> 
