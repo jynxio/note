@@ -423,6 +423,10 @@ material.gradientMap = texture_gradient;
 
 texture_gradient 是一张灰度图，比如这张图只有5个像素（1行5列），这5个像素从左向右灰度值逐级递增。
 
+> 只有当 `magFilter: three.NearestFilter` 时，这种卡通风格才会生效，因为gradient.jpg是一张只有几个像素的图片，将该图像生成纹理并应用至物体上，就属于是“纹理小于平面时，如何放大纹理使其完全覆盖平面”的情况，three.NearestFilter就是放大算法的其中一种，如果选用这种滤波，放大后得到的纹理就会是类似于像素风的纹理，颜色界限分明，但是如果选用其他算法，放大的过程中就会插值出许多中间颜色，最后贴到表面上后就会出现颜色渐变的效果，这就是为什么不使用这种算法就无法得到卡通效果的原因。 
+>
+> 至于为什么要令 `minFilter: three.NearestFilter`，是因为 minFilter 控制的是当“纹理大于平面时，如何缩小平面使其完全覆盖平面”的情况，这个过程中会使用mapping技术，他会创建很多不同规格的纹理，很显然，卡通风的材质不需要考虑纹理大于平面的情况，所以可以禁用mapping，这可以降低一点点性能负荷，而禁用mapping的方法就是 `minFilter: three.NearestFilter` 。
+
 ## MeshStandardMaterial
 
 这种材质是PBR的，PBR是指 physically based rendering（基于物理的渲染），这种材质更接近真实效果，并且拥有 `roughness` 和 `metalness` 来控制粗糙度和金属相似度。
@@ -1067,4 +1071,28 @@ ray可以多次穿过同一个几何体。如下所示，ray两次穿过环面�
 
 
 # 21 - Scroll based animation
+
+当页面下滑时，三维场景的几何体将会发生某些特定的动作，这就是本章节将要做的内容。
+
+## 小心弹性滚动
+
+为了实现这种效果，需要将three.js的canvas铺满屏幕，但是要小心 `弹性滚动` 特性。在某些浏览器环境中，当页面的滚动超出了极限时，页面会稍稍突破极限然后弹回来，由于canvas的场景通常是黑色的，而弹性滚动时，极限以外的部分会露出页面自己的颜色（就是body元素的颜色），如果页面的颜色是白色，那就会看到穿帮。
+
+为了解决这个问题，要么将body元素的颜色设置的和 `renderer` 的 `clearColor` 属性一样的颜色，要么激活 `renderer` 的 `alpha` ，第二种方案酷多了，第二种方案下canvas的背景是透明的，可以直接看到canvas之下的dom元素的样式。
+
+> `renderer.clearColor()` ：three.js 官方文档描述它是一种清除颜色缓存的方法，它的意思大概是某块像素上没有物体了，那就清除这块像素的颜色，由于canvas不是透明的，所以像素会有一个初始颜色，这个初始颜色默认是黑色。通过`setClearColor`可以设置这个初始色。
+
+```js
+const renderer = new three.WebGLRenderer({
+    canvas: canvas,
+    alpha: true
+});
+```
+
+实际上，`renderer` 的 `alpha` 的具体含义是“是否激活 `clearAlpha`”。`clearAlpha`是初始色的透明度，由于 `clearAlpha` 的默认值是 `0` ，所以一旦激活它，初始色就会是全透明。你可以通过 `setClearAlpha` 和 `getClearAlpha` 来操控他。
+
+```js
+renderer.getClearAlpha();
+renderer.setClearAlpha(1); // 入参是一个 [0, 1] 的数
+```
 
