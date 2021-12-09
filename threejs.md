@@ -1096,3 +1096,84 @@ renderer.getClearAlpha();
 renderer.setClearAlpha(1); // 入参是一个 [0, 1] 的数
 ```
 
+## Scroll（滚动）
+
+下拉页面，几何体会从下方开始入场，上拉页面，几何体会从上方入场。这种效果需要根据 `window.scrollY` 和 `camera.position.y` 来实现，也需要为 `window` 绑定 `scroll` 事件。
+
+## Parallax（视差）
+
+视差效果是指：当鼠标左移，几何体将右移（camera左移）；鼠标上移，几何体下移（camera上移），右下同理，这种视差效果可以增加页面的趣味性。
+
+这种效果需要根据`window.clientX` 和 `window.clientY` 和 `camera.psotion`的x和y来实现，也需要为 `window` 绑定 `mousemove` 事件。
+
+```js
+const cursor = {x: 0, y: 0};
+
+window.addEventListener("mousemove", event => {
+    
+    cursor.x = event.clientX / (window.innerWidth - 1) - 0.5;  // ∈[-0.5, 0.5]
+    cursor.y = event.clientY / (window.innerHeight - 1) - 0.5; // ∈[-0.5, 0.5]
+    
+});
+
+window.requestAnimationFrame(function loop(){
+    
+    window.requestAnimationFrame(loop);
+    
+    camera.position.x = cursor.x * amplitude;   // amplitude是振幅，用它来控制偏移的剧烈程度
+    camera.position.y = - cursor.y * amplitude; // amplitude是振幅，用它来控制偏移的剧烈程度
+    
+});
+```
+
+### Easing
+
+上述实现的视差效果很机械很生硬，因为几何体的移动是瞬时完成的，没有惯性的感觉，而几何体在真实世界中的运动是具有惯性效果的。使用easing可以让视差效果更生动。
+
+一种很巧妙的easing实现方式是：假设camera.position.x要从0移动至10，则第一帧的时候移动相差距离的1/10，第二帧移动剩余的相差距离的1/10，...，以此类推。这种实现的效果是，几何体永远在无限接近目标位置，而且离目标位置越近移动就越慢，它是一种直出缓停的效果，而不是普通的easing（缓出缓停）。
+
+```js
+window.requestAnimationFrame(function loop(){
+    
+    window.requestAnimationFrame(loop);
+    
+    camera.position.x += (cursor.x - camera.position.x) * 0.1;
+    camera.position.y += (- cursor.y - camera.position.y) * 0.1;
+    
+});
+```
+
+> 由于 camera 在 scroll 的实现中，已经需要根据页面滑动的程度来改变camera.position.y了，那么在实现parallax（尤其是加了easing）时就会很麻烦，因此一种做法是：
+>
+> ```js
+> const camera_group = new three.Group();
+> const camera = new three.PerspectiveCamera();
+> camera_group.add(camera);
+> ```
+>
+> 然后再camera_group上控制scroll，在camera上控制parallax，camera最后的位移是两者位移的累加，这样子可以更好的分别控制2种特效。
+
+### 消除帧率对easing的影响
+
+easing的运动是逐帧完成的，如果每帧的运动量是相同的，在不同刷新率的环境下，几何体的运动速度就会不同，因此需要消除这个bug。
+
+```js
+const clock = new three.Clock();
+let previous_time = 0;
+
+window.requestAnimationFrame(function loop(){
+    
+    window.requestAnimationFrame(loop);
+    
+    const elapsed_time = clock.getElapsedTime();
+    const delta_time = elapsed_time - previous_time;
+    
+    previous_time = elapsed_time;
+    
+    camera.position.x += (cursor.x - camera.position.x) * 0.1 * (delta_time * 50);
+    camera.position.y += (- cursor.y - camera.position.y) * 0.1 * (delta_time * 50);
+    
+});
+```
+
+> elapsed_time的单位是秒，所以delta_time的值很小，60FPS中只有0.016，因此需要乘50，让他变大，否则就会运动的很慢。不过运动的很慢也可以制造一种外空漂浮的感觉。
