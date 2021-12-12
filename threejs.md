@@ -1177,3 +1177,8 @@ window.requestAnimationFrame(function loop(){
 ```
 
 > elapsed_time的单位是秒，所以delta_time的值很小，60FPS中只有0.016，因此需要乘50，让他变大，否则就会运动的很慢。不过运动的很慢也可以制造一种外空漂浮的感觉。
+
+
+
+# 22 - Physics
+
