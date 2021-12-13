@@ -1,6 +1,7 @@
 # TODO
 
-- 学习如何使用各个 WebXR-AR API：2021.08.03 ， immersive-web 主席的演讲，她代码演示了如何使用各个 API ！ https://www.youtube.com/watch?v=t-uk8InHte4&list=PLW2iP2Rz9wsKTPwDEW1KhxcWkuwur_E9t
+- 学习如何使用各个 WebXR-AR API：2021.08.03 ， immersive-web 主席的演讲，她代码演示了如何使用各个 API ！ https://www.youtube.com/watch?v=t-uk8InHte4&list=PLW2iP2Rz9wsKTPwDEW1KhxcWkuwur_E9t （点进下面兼容性表的「Explainer」，里面好像有教程代码！）
+- Babylon.js 官网中有 WebXR API 的示例代码，可惜是基于 Babylon.js 的：https://doc.babylonjs.com/divingDeeper/webXR/introToWebXR
 
 
 
@@ -32,18 +33,42 @@ WebXR emulator 是由 mozilla 开发的浏览器插件，用于在浏览器中�
 
 # WebXR API
 
-##  API 完成进度
+##  API 实现进度
 
 - API 将在何时完成：https://www.w3.org/2020/05/immersive-Web-wg-charter.html
 - 现在支持哪些 API ：https://immersiveweb.dev/
 
 ## API 介绍
 
+截至 2021 年 8 月 3 日，浏览器支持的 API 如下：
+
+1. WebXR Core
+2. AR Module
+3. Gamepads
+4. Hit Test
+5. DOM Overlays
+6. Layers
+7. Hand Input
+8. Light Estimation
+
 > 参考资料：
 >
 > - （2020.09.04） immersive-web 的主席介绍了 WebXR 在未来将会新增哪些特性： https://www.youtube.com/watch?v=ypSkIYpJjE8
 > - （2020.10.21） 用视频演示了 WebXR 的特性： https://www.youtube.com/watch?v=dssQSeTrqPI
 > - （2021.08.03） immersive-web 的主席用代码演示了如何使用各个 API ： https://www.youtube.com/watch?v=t-uk8InHte4&list=PLW2iP2Rz9wsKTPwDEW1KhxcWkuwur_E9t
+
+### WebXR Core
+
+Where it all began!
+The core part of WebXR covers many Virtual Reality features. It is also designed to provide an extensible base the other WebXR modules can build on as more features get added.
+This important because WebXR technology is still in its infancy and changing rapidy.(By Web Standards)
+
+一切开始的地方！
+
+WebXR 的核心部分涵盖了许多虚拟现实的功能。它
+
+WebXR 的核心部分涵盖了许多虚拟现实功能。它还旨在提供一个可扩展的基础，随着更多功能的添加，其他 WebXR 模块可以在其上构建。
+这很重要，因为 WebXR 技术仍处于起步阶段并且变化很快。（根据 Web 标准）
 
 ### Hittest
 
