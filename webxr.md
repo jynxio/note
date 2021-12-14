@@ -1,6 +1,9 @@
 # TODO
 
-- 学习如何使用各个 WebXR-AR API：2021.08.03 ， immersive-web 主席的演讲，她代码演示了如何使用各个 API ！ https://www.youtube.com/watch?v=t-uk8InHte4&list=PLW2iP2Rz9wsKTPwDEW1KhxcWkuwur_E9t （点进下面兼容性表的「Explainer」，里面好像有教程代码！）
+- 直接看 three.js 的源码来学习 WebXR API （ WebXRManager.js ）。
+- 搞清楚参考空间
+- 重构 onSessionStart、onSessionEnd
+- 弄清楚 session 的所有事件类型
 - Babylon.js 官网中有 WebXR API 的示例代码，可惜是基于 Babylon.js 的：https://doc.babylonjs.com/divingDeeper/webXR/introToWebXR
 
 
@@ -31,7 +34,7 @@ WebXR emulator 是由 mozilla 开发的浏览器插件，用于在浏览器中�
 
 
 
-# WebXR API
+# Features
 
 > 主要参考资料：
 >
@@ -294,4 +297,20 @@ light_probe.addEventListener("reflectionchange", _ => {
 
 目前该特性正在 Oculus 中测试，不过只能在同一个一级域名下的网页之间进行跳转。
 
-## Next Step
+
+
+# Reference space types
+
+有 5 种参考空间： `viewer` 、 `local` 、 `local-floor` 、 `bounded-floor` 、 `unbounded` 。
+
+智能手机上的沉浸式 AR 不支持后 3 种参考空间，仅支持 `viewer` 和 `local` ，比如使用 `local-floor` 时会抛出下述异常：
+
+```js
+const session = await window.navigator.xr.requestSession( "immersive-ar", {} );
+
+renderer.xr.setReferenceSpaceType( "unbounded" );
+
+await renderer.xr.setSession( session ); // Uncaught (in promise) DOMException: Failed to execute 'requestReferenceSpace' on 'XRSession': This device not support the request reference space type.
+```
+
+> 我看见老爷子在 Hit Test 教程中使用了 `viewer` ，而我过去一直使用 `local` ， three.js 默认为 `local-floor` 。
