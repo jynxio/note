@@ -76,7 +76,7 @@ if ("xr" in window.navigator) {
 	/* WebXR can be used. */
     
     const supported = await window.navigator.xr.isSessionSupported("immersive-ar");
-    const xe_session = await window.navigator.xr.requestSession("immersive-ar");
+    const xr_session = await window.navigator.xr.requestSession("immersive-ar");
     
 } else {
     /* WebXR isn't available. */
