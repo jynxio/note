@@ -191,15 +191,71 @@ if (hit_test_results.length > 0) {
 
 ### Layers
 
+Layers 的作用是在 WebXR 中显示静态图像和视频元素（由用户代理来完成渲染），相比使用 WebGL 来渲染图像/视频， Layers 的优点是：
 
+- 渲染效果非常清晰，完全没有模糊的边缘，文字刻画入微；
+- 性能更高，节省一次重绘。 WebGL 会将图像绘制到场景中，使用 Layers 可以节省这次绘制，尤其对于视频元素， WebGL 会持续重绘图像，使用 Layers 则可以节省大量的重绘，因为 Layers 可以直接提供实时投影的结果（由用户代理实现）；
 
-### Lighting Estimation
+如果你要在场景中渲染文本， Layers 是不二之选，因为 WebGL 贴图上的文字的显示质量非常糟糕。
 
-照明估计。
+注意由 Layers 渲染的内容的显示优先级高于任何其它内容。 
 
-通过计算机视觉来粗略估计真实环境中的光照情况，诸如光的方向、颜色，然后在三维场景中模拟出真实世界的光照，虚拟物体接收并反射近似真实世界的光照，将会让它们更加逼真。
+```js
+/*
+ * 实例化
+ */
+let xr_media_factory = new XRMediaBinding(session);
+
+/*
+ * video元素
+ */
+let video = document.createElement("video");
+
+/*
+ * 创建一个圆柱体（还可以选择球体、平面）
+ */
+let layer = xr_media_fectory.createCylinderLayer(video, {
+    space: ref_space,
+    layout: "stereo-top-bottom" // 设为3D视频
+});
+
+session.updateRenderState({layers: [layer]});
+```
+
+> 截至目前（ 2021.12.14 ），Chrome for Android 还不支持该特性，但是有 Polyfill。 Ada Rose Cannon表示：在将来， Layers 将可能称为 WebXR 使用 DOM 内容的基础。
+
+### Light Estimation
+
+它是为增强现实设计的 API ，它的工作原理是：当场景运行时，人工只能利用计算机视觉大致构建出你所处的三维环境，比如光源的位置、颜色、投射方向，甚至可以为你提供一个用于反射的立体图，这样你就能让虚拟物体展现出融入四周的光泽，甚至可以让物体镜面反射现实环境。
 
 ![照明估计对比图](picture/webxr/%E5%85%89%E7%85%A7%E4%BC%B0%E8%AE%A1%E5%AF%B9%E6%AF%94%E5%9B%BE.png)
+
+```js
+/*
+ * 请求调用lightProbe
+ */
+const light_probe = await xrSession.requestLightProbe();
+
+/*
+ * 使用WebGL的glBinding和light_probe来生成立方反射纹理
+ */
+const gl_cube_map = glBinding.getReflectionCubeMap(light_probe);
+
+/*
+ * 更新立方反射纹理
+ */
+light_probe.addEventListener("reflectionchange", _ => {
+    
+    gl_cube_map = glBinding.getReflectionCubeMap(light_probe);
+    
+});
+```
+
+> Ada Rose Cannon ：可以使用 `light_probe` 来获取场景的球谐函数，然后直接导入 three.js 中去使用。
+
+
+
+
 
 ### Anchors
 
