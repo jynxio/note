@@ -113,10 +113,14 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 
 3. 下载转译所需的包。 `package.json` 内容如下：
 
-   ```
-   npm install --save-dev @babel/core
-   npm install --save-dev @babel/cli
-   npm install --save-dev @babel/preset-env
+   ```json
+   {
+       "devDependencies": {
+           "@babel/cli": "^7.16.0",
+           "@babel/core": "^7.16.5",
+           "@babel/preset-env": "^7.16.5"
+       }
+   }
    ```
 
 4. 执行转译命令，命令如下：
@@ -320,13 +324,215 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 
 ## 按需填补 - entry
 
-该方法会在全局环境中填补目标环境
+该方法会填补目标环境/运行时中缺失的 API ，该方法是通过修改 `window` 对象和部分原型链来实现的。示例代码是《entry》。
 
+步骤如下：
 
+1. 下载相关的包， `package.json` 内容如下：
+
+   ```json
+   {
+       "dependencies": {
+           "core-js": "^3.19.3",
+           "regenerator-runtime": "^0.13.9"
+       },
+       "devDependencies": {
+           "@babel/cli": "^7.16.0",
+           "@babel/core": "^7.16.5",
+           "@babel/preset-env": "^7.16.5",
+           "webpack": "^5.65.0",
+           "webpack-cli": "^4.9.1"
+       }
+   }
+   ```
+
+2. 创建 `a.js` ，内容如下：
+
+   ```js
+   import "core-js/stable";
+   import "regenerator-runtime/runtime";
+   
+   console.log("It work!");
+   ```
+
+3. 创建 `babel-chrome-80.config.json` 和 `babel-chrome-90.config.json` 文件， Babel 会自动判断目标环境缺少什么 API ，然后再引入缺失的 API 。
+
+   `babel-chrome-80.config.json` 代表目标环境是 chrome 80 ，其内容如下：
+
+   ```json
+   {
+       "presets": [[
+           "@babel/preset-env",
+           {
+               "targets": {"chrome": "80"},
+               "useBuiltIns": "entry",
+               "corejs": "3.19.3",
+               "modules": false
+           }
+       ]]
+   }
+   ```
+
+   `babel-chrome-90.config.json` 代表目标环境是 chrome 90 ，其内容如下：
+
+   ```json
+   {
+       "presets": [[
+           "@babel/preset-env",
+           {
+               "targets": {"chrome": "90"},
+               "useBuiltIns": "entry",
+               "corejs": "3.19.3",
+               "modules": false
+           }
+       ]]
+   }
+   ```
+
+4. 执行转译， npm 命令如下：
+
+   ```
+   npx babel a.js -o chrome80.js --config-file ./babel-chrome-80.config.json
+   npx babel a.js -o chrome90.js --config-file ./babel-chrome-90.config.json
+   ```
+
+5. 转译完成，获得 `chrome80.js` 和 `chrome90.js` ，原来的 `import` 语句被替换成了新的 `import` 语句，这表示导入当前环境所缺失的所有 API 。由于 chrome 80 环境相比 chrome 90 环境缺失更多的 API ，所以 `chrome80.js` 的导入语句更多。
+
+   `chrome80.js` 的内容如下：
+
+   ```js
+   import "core-js/modules/es.aggregate-error.js";
+   import "core-js/modules/es.array.at.js";
+   import "core-js/modules/es.array.reduce.js";
+   import "core-js/modules/es.array.reduce-right.js";
+   import "core-js/modules/es.object.has-own.js";
+   import "core-js/modules/es.promise.any.js";
+   import "core-js/modules/es.reflect.to-string-tag.js";
+   import "core-js/modules/es.string.at-alternative.js";
+   import "core-js/modules/es.string.replace-all.js";
+   import "core-js/modules/es.typed-array.at.js";
+   import "core-js/modules/web.immediate.js";
+   console.log("It work!");
+   ```
+
+   `chrome90.js` 的内容如下：
+
+   ```js
+   import "core-js/modules/es.array.at.js";
+   import "core-js/modules/es.object.has-own.js";
+   import "core-js/modules/es.string.at-alternative.js";
+   import "core-js/modules/es.typed-array.at.js";
+   import "core-js/modules/web.immediate.js";
+   console.log("It work!");
+   ```
+
+6. 现在 `chrome80.js` 和 `chrome90.js` 还都不使用，只要用 webpack 把脚本和脚本的依赖打包在一起后，就可以使用了。 npm 命令如下：
+
+   ```
+   npx webpack ./chrome80.js -o ./chrome-80
+   npx webpack ./chrome90.js -o ./chrome-90
+   ```
+
+7. 打包完成，获得 `./chrome-80/main.js` 和 `./chrome-90/main.js` 文件，将它们引入 HTML 内执行，就可以看见控制台输出 `"It worl!"` 了。
 
 ## 按需填补 - usage
 
+该方法会填补目标环境/运行时中缺失的 API 和你的脚本用到的 API 的交集，该方法是通过修改 `window` 对象和部分原型链来实现的。示例代码是《usage》。
 
+步骤如下：
+
+1. 下载相关的包， `package.json` 内容如下：
+
+   ```json
+   {
+       "dependencies": {
+           "core-js": "^3.19.3",
+           "regenerator-runtime": "^0.13.9"
+       },
+       "devDependencies": {
+           "@babel/cli": "^7.16.0",
+           "@babel/core": "^7.16.5",
+           "@babel/preset-env": "^7.16.5",
+           "webpack": "^5.65.0",
+           "webpack-cli": "^4.9.1"
+       }
+   }
+   ```
+
+2. 创建 `a.js` ，注意不能在该脚本中引入 `core-js` 和 `regenerator-runtime` 。内容如下：
+
+   ```js
+   const promise = Promise.any([1]);
+   console.log(promise);
+   ```
+
+3. 创建 `babel-chrome-84.config.json` 和 `babel-chrome-85.config.json` 文件， Babel 会自动判断你的脚本是否用到了目标环境中缺失的 API ，然后引入它们。
+
+   `babel-chrome-84.config.json` 代表目标环境是 chrome 84 ，其内容如下：
+
+   ```json
+   {
+       "presets": [[
+           "@babel/preset-env",
+           {
+               "targets": {"chrome": "84"},
+               "useBuiltIns": "usage",
+               "corejs": "3.19.3",
+               "modules": false
+           }
+       ]]
+   }
+   ```
+
+   `babel-chrome-85.config.json` 代表目标环境是 chrome 85 ，其内容如下：
+
+   ```json
+   {
+       "presets": [[
+           "@babel/preset-env",
+           {
+               "targets": {"chrome": "85"},
+               "useBuiltIns": "usage",
+               "corejs": "3.19.3",
+               "modules": false
+           }
+       ]]
+   }
+   ```
+
+4. 执行转译， npm 命令如下：
+
+   ```
+   npx babel a.js -o chrome84.js --config-file ./babel-chrome-84.config.json
+   npx babel a.js -o chrome85.js --config-file ./babel-chrome-94.config.json
+   ```
+
+5. 转译完成，获得 `chrome84.js` 和 `chrome85.js` ，由于 chrome 85 支持 `Promise.any` API ，所以 `chrome84.js` 文件导入了该 API 的 polyfill 脚本，而 `chrome85.js` 则没有。由于 `chrome85.js` 中使用到的唯一一个 API （ `Promise.any` ） 已经在目标环境中实现了，所以 `chrome85.js` 无需导入任何 API 的 polyfill 脚本。
+
+   `chrome84.js` 的内容如下：
+
+   ```js
+   import "core-js/modules/es.aggregate-error.js";
+   import "core-js/modules/es.promise.any.js";
+   const promise = Promise.any([1]);
+   console.log(promise);
+   ```
+
+   `chrome85.js` 的内容如下：
+
+   ```
+   const promise = Promise.any([1]);
+   console.log(promise);
+   ```
+
+6. 现在 `chrome84.js` 和 `chrome85.js` 还都不能使用，只要用 webpack 把脚本和脚本的依赖打包在一起后，就可以使用了。 npm 命令如下：
+
+   ```
+   npx webpack ./chrome84.js -o ./chrome-84
+   npx webpack ./chrome85.js -o ./chrome-85
+   ```
+
+7. 打包完成，获得 `./chrome-84/main.js` 和 `./chrome-85/main.js` 文件，将它们引入 HTML 中使用，就可以看见控制台输出 fulfilled 的 Promise 对象了（值为 1 ）。
 
 ## 如何对库的填补 API（TODO：未编辑）
 
@@ -458,9 +664,15 @@ npm install --save-dev @babel/preset-env
 - `"entry"` ：导入目标环境缺失的 API ，需要主动导入 `core-js` 和 `regenerator-runtime` 文件。
 - `"usage"` ：导入目标环境所缺失的 API 和你的脚本所用到的 API 的交集，不能主动导入 `core-js` 和 `regenerator-runtime` 文件。
 
-
-
 ### 参数 - corejs
+
+定义：
+
+用于指示 Babel 应当根据哪个版本的 `core-js` 来执行按需填补 API ，因此只有当 `useBuiltIns` 值为 `"entry"` 或 `"usage"` 时 `corejs` 参数才有作用，因为 `useBuiltIns` 值为 `false` 时就不会干按需填补 API 这事
+
+最佳实践是将项目所使用的 `corejs` 版本作为 `corejs` 字段的值，比如 `package.json` 中 `core-js` 的版本号为 `"^3.19.3"` ，则 `corejs` 的值就是 `"3.19.3"` 。
+
+
 
 ### 参数 - modules
 
