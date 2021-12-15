@@ -148,33 +148,17 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 
 学习如何使用 `@babel/preset-env` 、 `core-js` 、 `regenerator-runtime` 来填补 API 。既可以「完全填补」，也可以「按需填补」。
 
-// TODO 从这里开始
+## 完全填补 - HTML 文件引入 polyfill.js
 
+> 注：该方法已淘汰。
 
+在 HTML 文件中引入 `polyfill.js` 是最简单的填补 API 的方法，该方法通过修改 `window` 对象和部分原型链来实现在全局环境中填补所有缺失的 API 。示例是《完全填补- HTML 文件引入polyfill.js》。
 
+> 疑问：Babel 最低可以支持多旧的运行时？
 
+步骤如下：
 
-学习如何填补 ES6+ 的 API ，这样使用了 ES6+ API 的代码也可以在 ES5 环境中运行。
-
-方法 1 ：通过修改 `window` 对象与相关的原型链来补齐 API ，这会污染全局变量。
-
-方法 2 ：通过引入外部模块来填补 API ，这会适当修改原来的脚本，比如原本使用了 ES6+ API 的代码会被改写为使用外部模块。这种方式不会污染全局变量， 开发库时应当采用此种方式。
-
-> 因为如果库采用了方法 1 ，使用了该库的项目又再次采用了方法 1 ，那么便对 `window` 进行了 2 次修改，如果 2 次修改不一致（取决于转译时所用的 babel 包的版本），第 2 次修改就会覆盖第 1 次修改，库代码就可能无法正常运行。
->
-> 开发库还应该采用「按需填补 API 」来减小代码体积。
-
-
-
-## 方法 1-1 （淘汰）
-
-在 HTML 文件中引入 `polyfill.js` 文件是最简单的方法，该方法属于方法 1 的一种。示例代码是《1-1》。
-
-> 如何获取 `polyfill.js` ：
->
-> 通过 npm 下载 `@babel/polyfill` 后，在 `node_modules/@babel/polyfill/dist` 文件夹内就有 `polyfill.js` 和 `polyfill.min.js` 。
-
-使用 FF27 执行下述 HTML 文件，将会输出 `[object Object]` 。如果未引用 `polyfill.js` ， FF27 将抛出异常： `ReferenceError: Promise is not defined` 。
+通过 npm 下载 `@babel/polyfill` 后，在 `node_modules/@babel/polyfill/dist` 目录下有 `polyfill.js` 和 `polyfill.min.js` 文件，在 HTML 文件中直接引入其中一个即可，如：
 
 ```html
 <!DOCTYPE html>
@@ -195,47 +179,137 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 </html>
 ```
 
-## 方法 1-2 （淘汰）
+## 完全填补 - webpack 打包引入
 
-通过 webpack ，将你的脚本与 `polyfill.js` 或 `@babel/polyfill` 打包在一起，该方法属于方法 1 的一种。示例代码是《1-2》。
+该方法使用 webpack 工具将你的脚本与 polyfill 文件打包成为一个脚本， polyfill 文件有 3 种形式，因此一共有 3 种打包组合：
 
-Ⅰ 安装相关包， `package.json` 内容如下：
+- 你的脚本 + `polyfill.js`
+- 你的脚本 + `@babel/polyfill`
+- 你的脚本 + `core-js` + `regenerator-runtime`
 
-```json
-{
-    "dependencies": {
-        "@babel/polyfill": "^7.12.1"
-    },
-    "devDependencies": {
-        "webpack": "^5.65.0",
-        "webpack-cli": "4.9.1"
-    }
-}
-```
+该方法会修改 `window` 和部分原型链来实现在全局环境中填补所有缺失的 API 。
 
-Ⅱ 创建待打包文件 `a.js` ，内容如下：
+### 组合 1
 
-```js
-import "@babel/polyfill";                                     // 二选一
-import "./node_modules/@babel/polyfill/dist/polyfill.min.js"; // 二选一
+> 注：该方法已淘汰。
 
-const promise = new Promise(_ => { });
-console.log(promise);
-```
+示例代码是《webpack打包引入polyfill.js》。
 
-Ⅲ 执行打包， npm 命令如下：
+步骤如下：
 
-```
-npx webpack ./a.js -o ./dist
-node_modules/.bin/webpack ./a.js -o ./dist
-```
+1. 下载相关的包， `package.json` 内容如下：
 
-Ⅳ 打包成功， `./dist/main.js` 即是打包结果，在 HTML 文件中引入它后，执行 HTML 文件，控制台将输出 `"[object Object]"` 。
+   ```json
+   {
+       "dependencies": {
+           "@babel/polyfill": "^7.12.1"
+       },
+       "devDependencies": {
+           "webpack": "^5.65.0",
+           "webpack-cli": "^4.9.1"
+       }
+   }
+   ```
 
-## 方法 1-3
+2. 创建 `a.js` ，内容如下：
 
-通过 webpack ，将你的脚本与 `core-js` 和 `regenerator-runtime` 打包在一起，该方法属于方法 1 的一种。示例代码是《1-3》。
+   ```js
+   import "./node_modules/@babel/polyfill/dist/polyfill.min.js";
+   
+   const promise = new Promise( _ => {} );
+   console.log(promise);
+   ```
 
+3. 执行打包， npm 命令如下：
+
+   ```
+   npx webpack ./a.js -o ./output
+   ```
+
+4. 打包完成，获得 `main.js` 文件，该文件是你的脚本与 `polyfill.min.js` 打包的结果， `main.js` 会在全局环境填补所有缺失的 API ，然后再执行你的脚本。
+
+### 组合 2
+
+> 注：该方法已淘汰。
+
+示例代码是《webpack打包引入@babel_polyfill》。
+
+步骤如下：
+
+1. 下载相关的包， `package.json` 内容如下：
+
+   ```json
+   {
+       "dependencies": {
+           "@babel/polyfill": "^7.12.1"
+       },
+       "devDependencies": {
+           "webpack": "^5.65.0",
+           "webpack-cli": "^4.9.1"
+       }
+   }
+   ```
+
+2. 创建 `a.js` ，内容如下：
+
+   ```js
+   import "@babel/plofill";
+   
+   const promise = new Promise( _ => {} );
+   console.log(promise);
+   ```
+
+3. 执行打包， npm 命令如下：
+
+   ```
+   npx webpack ./a.js -o ./output
+   ```
+
+4. 打包完成，获得 `main.js` 文件，该文件是你的脚本与 `polyfill.min.js` 打包的结果， `main.js` 会在全局环境填补所有缺失的 API ，然后再执行你的脚本。
+
+### 组合 3
+
+示例代码是《webpack打包引入core-js和regenerator-runtime》。
+
+步骤如下：
+
+1. 下载相关的包， `package.json` 内容如下：
+
+   ```js
+   {
+       "dependencies": {
+           "core-js": "^3.19.3",
+           "regenerator-runtime": "^0.13.9"
+       },
+       "devDependencies": {
+           "webpack": "^5.65.0",
+           "webpack-cli": "^4.9.1"
+       }
+   }
+   ```
+
+2. 创建 `a.js` ，注意 `core-js` 和 `regenerator-runtime` 的引用没有固定的先后顺序。内容如下：
+
+   ```js
+   import "core-js/stable";
+   import "regenerator-runtime/runtime";
+   
+   const promise = new Promise( _ => {} );
+   console.log(promise);
+   ```
+
+3. 执行打包， npm 命令如下：
+
+   ```
+   npx webpack ./a.js -o ./output
+   ```
+
+4. 打包完成，获得 `main.js` 文件，该文件是你的脚本与 `polyfill.min.js` 打包的结果， `main.js` 会在全局环境填补所有缺失的 API ，然后再执行你的脚本。
+
+3 种打包的原理是完全一样的，只是 polyfill 文件不同。其中不应该再使用 `polyfill.js` 或 `@babel/polyfill` 来打包，因为 `@babel/polyfill` 已经被官方主动放弃，它已经无法填补所有缺失的 API 了，因为 `polyfill.js` 是 JS 文件形式的 `@babel/polyfill`，所以 `polyfill.js` 也随 `@babel/polyfill` 一起过时了。如果想要在全局环境中填补所有的 API ，就应当使用 `core-js` 和 `regenerator-runtime` 来作为 polyfill 文件，下文仔细阐述了原因。
+
+> 详情：
+>
 > 从 Babel 7.4.0 （2019.05.19）开始， `polyfill.js` 和 `@babel/polyfill` 已被官方弃用。官方推荐使用 `core-js/stable` 和 `regenerator-runtime/runtime` 。
 >
 > `@babel/polyfill` 和 `polyfill.js` 的区别在于后者被构建成 js 文件，它们都是通过修改 `window` 对象和相关原型链来填补 API 的。
@@ -244,51 +318,35 @@ node_modules/.bin/webpack ./a.js -o ./dist
 >
 > 如果安装了 `core-js` 和 `regenerator-runtime` 后再安装 `@babel/polyfill` ， `@babel/polyfill` 内部的 `core-js` 和 `regeneragor-runtime` 就会覆盖前面下载的 `core-js` 和 `regenerator-runtime` ，这就意味着旧版本覆盖了新版本。不仅如此，这还会引发「引用错误」异常，原因是在单独使用 `core-js` 时，我们的脚本需要这么引用它 `import "core-js/stable";` ，但是 `stable` 文件是自 3 号大版本起才有的。
 
-Ⅰ 安装相关包， `package.json` 内容如下：
+## 按需填补 - entry
 
-```json
-{
-    "dependencies": {
-        "core-js": "^3.19.3",
-        "regenerator-runtime": "^0.13.9"
-    },
-    "devDependencies": {
-        "webpack": "^5.65.0",
-        "webpack-cli": "^4.9.1"
-    }
-}
-```
-
-Ⅱ 创建待打包文件 `a.js` ，内容如下：
-
-```js
-import "core-js/stable";
-import "regenerator-runtime/runtime";
-
-const promise = new Promise(_ => { });
-console.log(promise);
-```
-
-Ⅲ 执行打包， npm 命令如下：
-
-```
-npx webpack ./a.js -o ./dist
-node_modules/.bin/webpack ./a.js -o ./dist
-```
-
-Ⅳ 打包成功， `./dist/main.js` 即是打包结果，在 HTML 文件中引入它后，执行 HTML 文件，控制台将输出 `"[object Object]"` 。
-
-> 注：`core-js` 和 `regenerator-runtime` 的 `import` 是没有先后顺序的。
-
-## 方法 1-4
+该方法会在全局环境中填补目标环境
 
 
 
+## 按需填补 - usage
 
 
-# 插件预设
+
+## 如何对库的填补 API（TODO：未编辑）
+
+方法 1 ：通过修改 `window` 对象与相关的原型链来补齐 API ，这会污染全局变量。
+
+方法 2 ：通过引入外部模块来填补 API ，这会适当修改原来的脚本，比如原本使用了 ES6+ API 的代码会被改写为使用外部模块。这种方式不会污染全局变量， 开发库时应当采用此种方式。
+
+> 因为如果库采用了方法 1 ，使用了该库的项目又再次采用了方法 1 ，那么便对 `window` 进行了 2 次修改，如果 2 次修改不一致（取决于转译时所用的 babel 包的版本），第 2 次修改就会覆盖第 1 次修改，库代码就可能无法正常运行。
+>
+> 开发库还应该采用「按需填补 API 」来减小代码体积。
+
+
+
+# 什么是插件
 
 插件是控制 Babel 的转译行为的 JS 程序，比如插件 `@babel/plugin-transform-arrow-functions` 可以将箭头函数转换为函数表达式。使用插件可以在细粒度上控制转译行为。最常用的官方插件有 1 个： `@babel/plugin-transform-runtime` 。
+
+
+
+# 什么是预设
 
 预设是一套预先设定好的插件组合，比如预设 `@babel/preset-env` 可以将所有 ES6+ 语法转译为 ES5 语法。最常用的官方预设有 4 个： `@babel/preset-env` 、 `@babel/preset-flow` 、 `@babel/preset-react` 、 `@babel/preset-typescript` 。
 
@@ -336,9 +394,9 @@ npm install --save-dev @babel/core
 npm install --save-dev @babel/preset-env
 ```
 
-通过配置参数，还可以实现「按需转译语法」和「按需填补 API 」，默认情况下它会转译所有语法且不引入任何 API Polyfill 。 对于「按需填补 API 」， `@babel/preset-env` 会在你的脚本中创建“导入外部 API Polyfill 模块的导入语句”，如果你想要脚本运行起来，当然需要在 `node_modules` 中添加 `core-js` 和 `regenerator-runtime` 的生产依赖，否则会抛出引用异常。
+通过配置参数，可以实现「按需转译语法」和「按需填补 API 」，默认情况下它会转译所有语法且不干涉填充 API 的行为 。 
 
-> 历史：
+> `@babel/preset-env` 的历史：
 >
 > 在 Babel 6 时代，常见的预设主要有： `babel-preset-es2015` 、 `babel-preset-es2016` 、 `babel-preset-es2017` 、 `babel-preset-state-0` 、 `babel-preset-state-1`、 `babel-preset-state-2`  、 `babel-preset-state-3` 、 `babel-preset-latest` 。
 >
@@ -346,73 +404,65 @@ npm install --save-dev @babel/preset-env
 >
 > `@babel/-preset-env` 正是 `babel-preset-latest` 的延续与增强，它不仅仅包含所有语法的转译规则，甚至还可以按需转译语法和按需填补 API 。它在 Babel 6 时代的旧名是 `babel-preset-env` 。
 
-它有十几个参数，本文只介绍其中最重要的 4 个。
+`@babel/preset-env` 有十几个参数，本文只介绍其中最重要的 4 个：
 
-| `targets` |                                                              |
-| --------- | ------------------------------------------------------------ |
-| 定义      | 描述目标环境的状态，该字段是「按需转译」和「按需填补」的必填字段。 |
-| 数据类型  | `string |Array<string> |{[string]: string}`                  |
-| 默认值    | `{}` （此时将会完全转译与完全填补）                          |
+### 参数 - targets
 
-示例：
+定义：它描述目标环境/运行时的状态，如果需要按需转译和按需填补，就必须使用该字段。
+
+数据类型：`string |Array<string> |{[string]: string}`
+
+默认值：`{}` （此时将会完全转译所有语法，并且不会干涉填补 API 的行为）
+
+参数示例：
 
 ```json
 {
-    "presets": [
-        [
-            "@babel/preset-env",
-            {
-                "targets": "> 0.25%, not dead"
-            }
-        ]
-    ]
+    "presets": [[
+        "@babel/preset-env",
+        {"targets": "> 0.25%, not dead"}
+    ]]
 }
 ```
 
 ```json
 {
-    "presets": [
-        [
-            "@babel/preset-env",
-            {
-                "targets": {"chrome": "58"}
-            }
-        ]
-    ]
+    "presets": [[
+        "@babel/preset-env",
+        {"targets": {"chrome": "58"}}
+    ]]
 }
 ```
 
-除了在 `babel.config.json` 中设置 `targets` 外，在 `package.json` 文件中设置 `browserslist` 可以得到一样的效果。当同时设置了它们两者时， Babel 会采用 `browserslist` 。
+`targets` 的一种等效用法是：在 `package.json` 种设置 `browserslist` 。当同时使用了 `targets` 和 `browserslist` 时， Babel 会采用 `browserslist` 。
+
+`browserslist` 示例：
 
 ```json
 {
-    "dependencies": {
-        "core-js": "^3.19.3",
-        "regenerator-runtime": "^0.13.9"
-    },
-    "devDependencies": {
-        "webpack": "^5.65.0",
-        "webpack-cli": "^4.9.1"
-    },
-    "browserslist": [
-        "chrome 60"
-    ]
+    "dependencies": {},
+    "devDependencies": {},
+    "browserslist": ["chrome 58"]
 }
 ```
 
+### 参数 - useBuiltIns
+
+定义：设置填补 API 的规则。
+
+取值： `"usage"` 或 `"entry"` 或 `false`
+
+默认值： `false`
+
+- `false` ：不干涉 API 的填补行为。
+- `"entry"` ：导入目标环境缺失的 API ，需要主动导入 `core-js` 和 `regenerator-runtime` 文件。
+- `"usage"` ：导入目标环境所缺失的 API 和你的脚本所用到的 API 的交集，不能主动导入 `core-js` 和 `regenerator-runtime` 文件。
 
 
-| `useBuiltIns` |                                                |
-| ------------- | ---------------------------------------------- |
-| 定义          | 设置填补多少 API ，需要结合 `targets` 来使用。 |
-| 取值          | `"usage" |"entry" |false`                      |
-| 默认值        | `false`                                        |
 
-- `usage` ：填补目标环境缺失的 API 。
-- `entry` ：填补目标环境缺失的 API 中被用到的 API 。
-- `false` ：填补所有 API 。
+### 参数 - corejs
 
-
+### 参数 - modules
 
 Ⅲ `corejs` ：
 
