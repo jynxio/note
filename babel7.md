@@ -435,6 +435,16 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 
 7. 打包完成，获得 `./chrome-80/main.js` 和 `./chrome-90/main.js` 文件，将它们引入 HTML 内执行，就可以看见控制台输出 `"It worl!"` 了。
 
+> 注：
+>
+> Babel 只需要根据 `targets` 和 `corejs` 就可以判断出目标环境缺失哪些 API ，以及又该从哪个目录中引入 polyfill 脚本，因此哪怕不下载 `core-js` 和 `regenerator-runtime` 也能正常完成 API 的填补工作，不过要注意 `import "core-js/stable";` 和 `import "regenerator-runtime/runtime";` 这两条语句是一定要写的，否则就不会做任何填补工作。
+>
+> 整个项目只能导入一次 `core-js` 和 `regenerator-runtime` ，否则会引发错误。
+>
+> 当然，在 webpack 之前还是要把 `core-js` 和 `regenerator-runtime` 这两个依赖下载下来的。
+>
+> 更多细节请见《@babel/preset-env》的《参数 - corejs 》部分。
+
 ## 按需填补 - usage
 
 该方法会填补目标环境/运行时中缺失的 API 和你的脚本用到的 API 的交集，该方法是通过修改 `window` 对象和部分原型链来实现的。示例代码是《usage》。
@@ -533,6 +543,16 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
    ```
 
 7. 打包完成，获得 `./chrome-84/main.js` 和 `./chrome-85/main.js` 文件，将它们引入 HTML 中使用，就可以看见控制台输出 fulfilled 的 Promise 对象了（值为 1 ）。
+
+> 注：
+>
+> Babel 只需要根据 `targets` 和 `corejs` 和脚本的内容就可以判断出应该引入哪些 API ，以及又该从哪个目录中引入 polyfill 脚本。因此哪怕不下载 `core-js` 和 `regenerator-runtime` 也能正常完成 API 的填补工作。
+>
+> 不过和 `useBuiltIns` 值为 `"entry"` 时不同，当值为 `"usage"` 时，你的脚本中不能写 `import "core-js/stable";` 和 `import "regenerator-runtime/runtime";` ，因为如果写了这两条语句，它们会被直接复制到 Babel 后的脚本中去。不写它们就好了， Babel 可以正常工作的，别担心。
+>
+> 当然，在 webpack 之前还是要把 `core-js` 和 `regenerator-runtime` 这两个依赖下载下来的。
+>
+> 更多细节请见《@babel/preset-env》的《参数 - corejs 》部分。
 
 ## 如何对库的填补 API（TODO：未编辑）
 
@@ -640,7 +660,7 @@ npm install --save-dev @babel/preset-env
 }
 ```
 
-`targets` 的一种等效用法是：在 `package.json` 种设置 `browserslist` 。当同时使用了 `targets` 和 `browserslist` 时， Babel 会采用 `browserslist` 。
+`targets` 的一种等效用法是：在 `package.json` 种设置 `browserslist` 。当同时使用了 `targets` 和 `browserslist` 时， Babel 会采用 `targets` （这有可能写错，需要再核对一下）。
 
 `browserslist` 示例：
 
@@ -672,13 +692,77 @@ npm install --save-dev @babel/preset-env
 
 最佳实践是将项目所使用的 `corejs` 版本作为 `corejs` 字段的值，比如 `package.json` 中 `core-js` 的版本号为 `"^3.19.3"` ，则 `corejs` 的值就是 `"3.19.3"` 。
 
+> 更多细节：
+>
+> 当执行「按需填补 API 」任务时， Babel 会将一条 `import "core-js/stabel";` 语句，拆分成零至多条 `require("...");` 语句（取决于 `targets` 和 `useBuiltIns` ）。由于不同版本的 core-js 包的目录结构有可能不同（比如子模块的数量、命名、路径、功能等），因此基于不同版本的 core-js 包来执行任务所得到的结果是有可能不同的，所以 Babel 需要明确的知道自己应当根据哪个版本的 core-js 来执行「按需填补 API 」任务，这就是 `corejs` 参数的意义。
+>
+> 因为 `corejs` 是服务于「按需引入」任务的参数，所以 `corejs` 只有在 `useBuiltIns` 为 `"entry"` 或 `"usage"` 时才需要设置/才有作用。
+>
+> 总之，Babel 只需要知道： ① 目标环境的情况（ `targets` ）、 ② 按需填补的类型（ `useBuiltIns` ）、 ③ `core-js` 包的版本（ `corejs` ）就可以正常执行「按需填补 API 」任务了，执行过程中 Babel 不会访问实际下载的 `core-js` 和 `regenerator-runtime` 文件，这就是为什么没有下载 `core-js` 和 `regenerator-runtime` 时， Babel 也能正常工作。不过要注意， `useBuiltIns` 为 `"entry"` 时，待处理的脚本必须书写 `import "core-js/stable";` 和 `import "regenerator-runtime/runtime";` ，当 `useBuiltIns` 为 `"usage"` 时则不能写。详见《按需填补 - entry 》和《按需填补 - usage 》。
+>
+> 最后， webpack 时实际下载的 `core-js` 包的版本必须和 `corejs` 参数的值一致。
 
+数据类型：
+
+ `string | {version: string, proposals: boolean}`
+
+如果想要引入提案阶段的 ES 特性，就需要将 `corejs` 参数设定为特殊值，这时才会用到 `{version: string, proposals: boolean}` 。如果只是想引入稳定的 ES 特性，只使用 `string` 格式就够了。
+
+默认值： `"2.0"`
 
 ### 参数 - modules
 
-Ⅲ `corejs` ：
+定义：该参数决定使用什么类型的模块语法。
 
-Ⅳ `modules` ：
+取值： `"amd" | "umd" | "systemjs" | "commonjs" | "cjs" | "auto" | false` ，当取值为 `false` 时将使用 ES 模块语法（ `import`  和 `export` ）。
+
+默认值： `"auto"` （这时经常会用 commonjs 模块语法，即 `require` 和 `module.exports` ）。
+
+## @babel/runtime
+
+它包含所有的语法转译辅助函数，通常搭配 `@babel/plugin-transform-runtime` 使用。
+
+部分语法在转译后需要使用语法辅助函数，默认情况下， Babel 会将语法辅助函数写入转译结果文件内，比如转译 `class` 语法时，转译结果文件就被写入了 `_classCallCheck_` 函数。
+
+```js
+/* 待转译 */
+class A{}
+```
+
+```js
+/* 完成转译 */
+"use strict";
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+var A = function A() {
+  _classCallCheck(this, A);
+};
+```
+
+如果同一个项目内的多个模块都使用了 `class` 语法，那么每个模块的转译结果文件都将被写入 `_classCallCheck` 函数，打包后就会造成冗余。为了剔除这些冗余，可以使用 `@babel/runtime` 。 Babel 官方将所有语法辅助函数都编写成了独立的脚本（也是模块），它们被集成进 `@babel/runtime` 中，开发者通过使用外部的语法辅助函数来替代内联的语法辅助函数，就可以解决前面讲到的冗余问题，因为外部的语法辅助函数只会被打包一次。
+
+比如，上述文件可以被手动改写为下述内容，来剔除潜在的冗余问题：
+
+```js
+"use strict";
+
+var _classCallCheck = require("@babel/runtime/helpers/classCallCheck");
+
+var A = function A() {
+  _classCallCheck(this, A);
+};
+```
+
+但是手动引入外部语法辅助函数很麻烦，而 `@babel/plugin-transform-runtime` 可以自动化处理这件事。
+
+## @babel/plugin-transform-runtime（TODO：重学这块）
+
+## regenerator-runtime
+
+它不是官方的包，它用于填补 `Generator Function` 和 `Async Function` 。
+
+该包只有 2 个 JS 文件， `path.js` 用于获取 `runtime.js` 的绝对路径， `runtime.js` 用于填补 `Generator Function` 和 `Async Function` 。
+
+由于它使用 1 个脚本来填补 2 个 API ，所以只要缺失 `Generator Function` 和 `Async Function` 的任意一者， Babel 都会导入整个 `regenerator-runtime` 。
 
 
 
