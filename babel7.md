@@ -584,7 +584,7 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 
 
 
-# 转译配置文件
+# 配置文件
 
 可以使用下述任意一种文件来配置转译行为：
 
@@ -660,7 +660,7 @@ npm install --save-dev @babel/preset-env
 }
 ```
 
-`targets` 的一种等效用法是：在 `package.json` 种设置 `browserslist` 。当同时使用了 `targets` 和 `browserslist` 时， Babel 会采用 `targets` （这有可能写错，需要再核对一下）。
+`targets` 的一种等效用法是：在 `package.json` 种设置 `browserslist` 。当同时使用了 `targets` 和 `browserslist` 时， Babel 会采用 `targets` 。
 
 `browserslist` 示例：
 
@@ -720,41 +720,198 @@ npm install --save-dev @babel/preset-env
 
 ## @babel/runtime
 
-它包含所有的语法转译辅助函数，通常搭配 `@babel/plugin-transform-runtime` 使用。
+该包存储了所有的语法辅助函数模块，每个模块都封装了一个语法辅助函数。
 
-部分语法在转译后需要使用语法辅助函数，默认情况下， Babel 会将语法辅助函数写入转译结果文件内，比如转译 `class` 语法时，转译结果文件就被写入了 `_classCallCheck_` 函数。
+转译某些语法时会产生「语法辅助函数」，语法辅助函数用于辅助转译后的语法的运行。默认情况下， Babel 会在转译结果文件中写入语法辅助函数，比如转译 `class` 时， Babel 会在转译结果文件中写入 3 个函数： `_defineProperties` 、 `_createClass` 、 `_classCallCheck` 。示例代码是《如何使用@babel_runtime》。
 
-```js
-/* 待转译 */
-class A{}
-```
+步骤如下：
 
-```js
-/* 完成转译 */
-"use strict";
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-var A = function A() {
-  _classCallCheck(this, A);
-};
-```
+1. 下载相关包， `package.json` 内容如下：
 
-如果同一个项目内的多个模块都使用了 `class` 语法，那么每个模块的转译结果文件都将被写入 `_classCallCheck` 函数，打包后就会造成冗余。为了剔除这些冗余，可以使用 `@babel/runtime` 。 Babel 官方将所有语法辅助函数都编写成了独立的脚本（也是模块），它们被集成进 `@babel/runtime` 中，开发者通过使用外部的语法辅助函数来替代内联的语法辅助函数，就可以解决前面讲到的冗余问题，因为外部的语法辅助函数只会被打包一次。
+   ```json
+   {
+       "devDependencies": {
+           "@babel/cli": "^7.16.0",
+           "@babel/core": "^7.16.5",
+           "@babel/preset-env": "^7.16.5",
+           "webpack": "^5.65.0",
+           "webpack-cli": "^4.9.1"
+       },
+       "dependencies": {
+           "@babel/runtime": "^7.16.5"
+       }
+   }
+   ```
 
-比如，上述文件可以被手动改写为下述内容，来剔除潜在的冗余问题：
+2. 创建待转译文件 `a.js` ，内容如下：
 
-```js
-"use strict";
+   ```js
+   class A {
+       constructor( value ) {
+           console.log( value );
+       }
+   }
+   
+   const a = new A( 1 );
+   ```
 
-var _classCallCheck = require("@babel/runtime/helpers/classCallCheck");
+3. 配置转译文件， `babel.config.json` 内容如下：
 
-var A = function A() {
-  _classCallCheck(this, A);
-};
-```
+   ```json
+   {
+       "presets": ["@babel/preset-env"]
+   }
+   ```
 
-但是手动引入外部语法辅助函数很麻烦，而 `@babel/plugin-transform-runtime` 可以自动化处理这件事。
+4. 对 `a.js` 进行语法转译， npm 命令如下：
 
-## @babel/plugin-transform-runtime（TODO：重学这块）
+   ```
+   npx babel a.js -o b.js
+   ```
+
+5. 转译完成，获得转译结果文件 `b.js` ，它的内容如下：
+
+   ```js
+   "use strict";
+   
+   function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+   
+   function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); Object.defineProperty(Constructor, "prototype", { writable: false }); return Constructor; }
+   
+   function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+   
+   var A = /*#__PURE__*/_createClass(function A() {
+     _classCallCheck(this, A);
+   });
+   ```
+
+   假设一个项目由 10 个模块组成，每个模块都使用了 `class` 语法，经过语法转译后，得到的 10 个转译结果文件都将被写入相同的语法辅助函数，再打包得到 1 个 `bound.js` 文件， `bound.js` 内便存在 27 个冗余的语法辅助函数，因为理论上只需要使用 1 个 `_defineProperties` 、 1 个 `_createClass` 、 1 个 `_classCallCheck` 便足够了。
+
+   为了解决冗余问题， Babel 官方将每个语法辅助函数都封装成一个独立的模块，再把所有的语法辅助函数模块都存储在 `@babel/runtime` 中，比如 `_defineProperties` 被封装为 `defineProperty.js` ， `_createClass` 被封装为 `createClass.js` ， `_classCallCheck` 被封装为 `classCallCheck.js` ，我们把它们称为「语法辅助函数模块」。
+
+   如果转译后的 10 个转译结果文件都使用 `defineProperty.js` 、 `createCalss.js` 、 `classCallCheck.js` 就可以解决冗余问题，因为 `bound.js` 中只会引入 1 个 `defineProperty.js` 、 1 个 `createCalss.js` 和 1 个 `classCallCheck.js` 。
+
+6. 如何使用 `@babel/runtime` 呢？比如对于 `b.js` ，手动将语法辅助函数替换为语法辅助函数模块，替换后得到 `c.js` ，它的内容如下：
+
+   ```js
+   "use strict";
+   
+   var _defineProperties = require("@babel/runtime/helpers/defineProperty");
+   
+   var _createClass = require("@babel/runtime/helpers/createClass");
+   
+   var _classCallCheck = require("@babel/runtime/helpers/classCallCheck");
+   
+   var A = /*#__PURE__*/_createClass(function A(value) {
+       _classCallCheck(this, A);
+   
+       console.log(value);
+   });
+   
+   var a = new A(1);
+   ```
+
+   > 注：手动导入语法函数模块时，要用 `require` ，不要用 `import` 。
+
+7. `c.js` 还无法使用，它要经过打包才能使用， npm 命令如下：
+
+   ```
+   npx webpack ./c.js -o ./c
+   ```
+
+8. 获得 `./c/main.js` 文件，创建 `c.html` 并引用 `main.js` ，在 FF27 中运行该 HTML 文件，控制台将会输出 `1` 。
+
+这就是 `@babel/runtime` 的使用方法。此外， `@babel/plugin-transform-runtime` 插件可以自动化这个替换工序。
+
+## @babel/plugin-transform-runtime（TODO：从这里开始）
+
+> TODO：开始写这个插件的第二个作用，从姜的这篇文章开始 https://www.jiangruitao.com/babel/transform-runtime2/
+
+它有 3 种作用：
+
+1. 将语法辅助函数替换为对语法辅助函数模块的引用；
+2. ？
+3. ？
+
+### 作用 1
+
+这里演示如何将语法辅助函数自动的替换为对语法辅助函数模块的引用，示例代码是《@babel_plugin-transform-runtime》的《作用1》。
+
+步骤如下：
+
+1. 下载包， `packagr.json` 内容如下：
+
+   ```json
+   {
+       "devDependencies": {
+           "@babel/cli": "^7.16.0",
+           "@babel/core": "^7.16.5",
+           "@babel/plugin-transform-runtime": "^7.16.5",
+           "@babel/preset-env": "^7.16.5",
+           "webpack": "^5.65.0",
+           "webpack-cli": "^4.9.1"
+       },
+       "dependencies": {
+           "@babel/runtime": "^7.16.5"
+       }
+   }
+   ```
+
+2. 创建待转译文件 `a.js` ，内容如下：
+
+   ```js
+   class A {
+       constructor( value ) {
+           console.log( value );
+       }
+   }
+   const a = new A( 1 );
+   ```
+
+3. 配置转译文件， `babel.config.json` 内容如下：
+
+   ```json
+   {
+       "presets": ["@babel/preset-env"],
+       "plugins": ["@babel/plugin-transform-runtime"]
+   }
+   ```
+
+4. 对 `a.js` 进行语法转译， npm 命令如下：
+
+   ```
+   npx babel a.js -o b.js
+   ```
+
+5. 转译完成，获得转译结果文件 `b.js` ，它内部的语法辅助函数已经被自动替换为对语法辅助函数模块的引用。它引用的模块是 `interopRequireDefault.js` 、 `createClass.js` 和 `classCallCheck.js` ，然而在《@babel/runtime》中，我们手动替换引用后，引用的模块是 `defineProperty.js` 、 `createCalss.js` 和 `classCallCheck.js` 。
+
+   `b.js` 的内容如下：
+
+   ```js
+   "use strict";
+   
+   var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+   
+   var _createClass2 = _interopRequireDefault(require("@babel/runtime/helpers/createClass"));
+   
+   var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/classCallCheck"));
+   
+   var A = /*#__PURE__*/(0, _createClass2["default"])(function A(value) {
+     (0, _classCallCheck2["default"])(this, A);
+     console.log(value);
+   });
+   var a = new A(1);
+   ```
+
+6. `b.js` 还无法使用，它要经过打包才能使用， npm 命令如下：
+
+   ```
+   npx webpack ./b.js -o ./b
+   ```
+
+7. 获得 `./b/main.js` 文件，创建 `b.html` 并引用 `main.js` ，在 FF27 中运行该 HTML 文件，控制台将会输出 `1` 。
+
+这就是 `@babel/plugin-transform-runtime` 如何自动化的将语法辅助函数替换成语法辅助函数模块的教程了。
 
 ## regenerator-runtime
 
