@@ -927,6 +927,5 @@ npm install --save-dev @babel/preset-env
 
 使用旧版本的浏览器来检验转译是否成功。
 
-Ⅰ [Firefox 27 的下载地址](https://ftp.mozilla.org/pub/firefox/releases/27.0.1/)
-
-Ⅱ 安装完成后，禁用浏览器自动更新 `选项（左上角）-> 高级 -> 更新`
+1. [Firefox 27 的下载地址](https://ftp.mozilla.org/pub/firefox/releases/27.0.1/)
+2. 安装完成后，禁用浏览器自动更新 `选项（左上角）-> 高级 -> 更新`
