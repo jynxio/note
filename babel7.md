@@ -823,15 +823,17 @@ npm install --save-dev @babel/preset-env
 
 这就是 `@babel/runtime` 的使用方法。此外， `@babel/plugin-transform-runtime` 插件可以自动化这个替换工序。
 
-## @babel/plugin-transform-runtime（TODO：从这里开始）
+## @babel/runtime-corejs2（TODO）
 
-> TODO：开始写这个插件的第二个作用，从姜的这篇文章开始 https://www.jiangruitao.com/babel/transform-runtime2/
+## @babel/runtime-corejs3（TODO）
 
-它有 3 种作用：
+## @babel/plugin-transform-runtime
 
-1. 将语法辅助函数替换为对语法辅助函数模块的引用；
-2. ？
-3. ？
+一个旨在通过重用代码来节省体积的插件，它具体有 3 种作用：
+
+1. 将语法辅助函数替换为对语法辅助函数模块的引用（默认激活）；
+2. 如果脚本使用了 ES6+ 的 API ，就自动引入无污染的接口填补模块 1 （默认不激活）；
+3. 如果脚本使用了 Generator 函数或 Async 函数，就自动引入无污染的接口填补模块 2 （默认激活）；
 
 ### 作用 1
 
@@ -912,6 +914,107 @@ npm install --save-dev @babel/preset-env
 7. 获得 `./b/main.js` 文件，创建 `b.html` 并引用 `main.js` ，在 FF27 中运行该 HTML 文件，控制台将会输出 `1` 。
 
 这就是 `@babel/plugin-transform-runtime` 如何自动化的将语法辅助函数替换成语法辅助函数模块的教程了。
+
+### 作用 2
+
+过去通过将脚本与 `core-js` 和 `regenerator-runtime` 打包在一起来实现 API 的填补，其中有「完全填补」和「按需填补」两种模式，前者只需要使用 webpack 将 `core-js` 和 `regenerator-runtime` 和你的脚本打包在一起就可以实现了，后者还额外需要配置 `@babel/preset-env` 的 `targets` 和 `useBuiltIns` 字段，才能实现。
+
+无论是哪种模式，它们都是通过修改 `window` 和某些原型链来实现的，这会污染全局环境。对于普通的项目而言，通过修改全局环境来填补 API 是可以的，但是对于库而言，则是不可以的。如果库已经修改过一次全局环境了（为了填补 API ），而依赖该库的项目为了填补 API 又再次修改全局的话，后一次修改就会覆盖前一次修改，如果这两次修改是不同的，就有可能导致库故障，因为库有可能无法在更新后的全局环境中运行。由于填补 API 时，对全局环境的修改取决于 `core-js` 和 `regenerator-runtime` ，所以如果库和项目所依赖的 `core-js` 和 `regenerator-runtime` 的版本号是不同的，就有可能导致上述故障。
+
+因此库需要使用一种不污染全局变量的方式来填补 API ，相应的解决办法就是：如果脚本中使用了 ES6+ 的 API ，就引入「无污染的接口填补模块」来填补该 API ，并修改原代码，使其调用新引入的模块，而不是 ES6+ 的 API 。
+
+要实现这种办法，就需要使用 `@babel/plugin-transform-runtime` 并配置参数。示例代码是《@babel_plugin-transform-runtime》的《作用2》。
+
+步骤如下：
+
+1. 下载相关的包， `package.json` 内容如下：
+
+   ```json
+   {
+       "devDependencies": {
+           "@babel/cli": "^7.16.0",
+           "@babel/core": "^7.16.5",
+           "@babel/plugin-transform-runtime": "^7.16.5",
+           "@babel/preset-env": "^7.16.5",
+           "webpack": "^5.65.0",
+           "webpack-cli": "^4.9.1"
+       },
+       "dependencies": {
+           "@babel/runtime-corejs3": "^7.16.5"
+       }
+   }
+   ```
+
+   `@babel/runtime-corejs3` 是 `@babel/runtime` 的升级版，它不仅仅包含 `@babel/runtime` 的语法辅助函数模块，还包含 `core-js` （ 3 号大版本）的 API polyfill ，只不过它们是无污染的接口填补模块。
+
+2. 配置 `babel.config.json` ，内容如下：
+
+   ```json
+   {
+       "presets": ["@babel/preset-env"],
+       "plugins": [[
+           "@babel/plugin-transform-runtime",
+           {
+               "helpers": true,
+               "corejs": 3,
+               "regenerator": true,
+               "absoluteRuntime": false,
+               "version": "^7.16.5"
+           }
+       ]]
+   }
+   ```
+
+   `helpers` 、 `corejs` 、 `regenerator` 、 `absoluteRuntime` 、 `version` 将在下文介绍。
+
+   其实不使用 `@babel/preset-env` 也能正常填补 API ，并最后顺利打出一个可以执行的包，但是如果不使用 `@babel/preset-env` 的话，会少引入一个 `interopRequireDefault` 和严格模式，虽然我不知道这究竟会带来什么影响，但是为了安全起见，还是应该使用 `@babel/preset-env` 。
+
+3. 创建 `a.js` ，其内的 `Promise` 正是期待被填补的 API ，内容如下：
+
+   ```js
+   const promise = Promise.resolve( 1 );
+   console.log( promise );
+   ```
+
+4. 执行 Babel ， npm 命令如下：
+
+   ```
+   npx babel a.js -o b.js
+   ```
+
+5. 获得 `b.js` ，内容如下：
+
+   ```js
+   "use strict";
+   
+   var _interopRequireDefault = require("@babel/runtime-corejs3/helpers/interopRequireDefault")["default"];
+   
+   var _promise = _interopRequireDefault(require("@babel/runtime-corejs3/core-js-stable/promise"));
+   
+   var promise = _promise["default"].resolve(1);
+   
+   console.log(promise);
+   ```
+
+   可见，脚本引入了 `promise` 模块并赋值给 `_promise` ，并将 `Promise.resolve(1)` 修改成了 `_promise["default"].resolve(1)` 。
+
+6. 打包， npm 命令如下：
+
+   ```
+   npx webpack ./b.js -o ./b
+   ```
+
+7. 获得 `./b/main.js` ，将其放入 HTML 文件中，然后执行该 HTML 文件，可以看见控制台输出 `"[object Object]"` 。如果你在控制台键入 `window.Promise` ，将会输出 `undefined` ，而在《如何填补API》的《完全填补》的示例代码中，键入 `window.Promise` 的结果是 `"[object Function]"` 。可见该示例以无污染的方式填补了 Promise API 。
+
+### 作用 3
+
+过去通过导入 `regenerator-runtime` 来补齐 Generator Function API 和 Async Function API ，但是这会污染全局对象，比如 `window` 被添加了一个 `regeneratorRuntime` 对象。
+
+为了能够无污染的填补这两个 API ，就需要激活 ``
+
+???????????????????????????
+
+
 
 ## regenerator-runtime
 
