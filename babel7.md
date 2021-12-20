@@ -152,6 +152,12 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 
 学习如何使用 `@babel/preset-env` 、 `core-js` 、 `regenerator-runtime` 来填补 API 。既可以「完全填补」，也可以「按需填补」。
 
+> TODO：下文这段表述出现在这里还是不太恰当。
+
+对于 `Generator Function` 和 `Async Function` ，光引入 polyfill 文件是不够的，还需要转译脚本中出现的相关语法，这是因为 `Generator Function` 和 `Async Function` 是使用了新语法的 API ，比如 `async` 、 `await` 、 `function*` 、 `yield` 等，因此哪怕补齐了 API ，但是旧运行时会因为无法识别这些新语法而抛出错误。
+
+因此在实践中，仅仅通过 webpack 将脚本与 polyfill 打包在一起是不够的，应该在打包之前增加 Babel 转译语法的环节。
+
 ## 完全填补 - HTML 文件引入 polyfill.js
 
 > 注：该方法已淘汰。
@@ -1032,11 +1038,11 @@ var p = _promise;
 
 如果想要既不改变全局环境，又填补 `Generator Function API` 和 `Async Function API` ，就需要 `regenerator: true` 。
 
-为了能够无污染的填补这两个 API ，就需要激活 ``
-
-???????????????????????????
+从这里开始，使用async来测试
 
 TODO：作用2中要补充描述“可以在脚本中导入@babel/runtime-corejs3吗？它不会被直接保留下来吗？”。
+
+从《作用3的测试》开始，写这一小节。
 
 ## regenerator-runtime
 
