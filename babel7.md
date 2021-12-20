@@ -688,7 +688,7 @@ npm install --save-dev @babel/preset-env
 
 定义：
 
-用于指示 Babel 应当根据哪个版本的 `core-js` 来执行按需填补 API ，因此只有当 `useBuiltIns` 值为 `"entry"` 或 `"usage"` 时 `corejs` 参数才有作用，因为 `useBuiltIns` 值为 `false` 时就不会干按需填补 API 这事
+用于指示 Babel 应当根据哪个版本的 `core-js` 来执行按需填补 API ，因此只有当 `useBuiltIns` 值为 `"entry"` 或 `"usage"` 时 `corejs` 参数才有作用，因为 `useBuiltIns` 值为 `false` 时就不会做按需填补 API 这事
 
 最佳实践是将项目所使用的 `corejs` 版本作为 `corejs` 字段的值，比如 `package.json` 中 `core-js` 的版本号为 `"^3.19.3"` ，则 `corejs` 的值就是 `"3.19.3"` 。
 
@@ -825,19 +825,23 @@ npm install --save-dev @babel/preset-env
 
 ## @babel/runtime-corejs2（TODO）
 
+它是 `@babel/runtime` 的加强版，它包含 `@babel/runtime` 、 `regenerator-runtime` 、 `core-js` （ 2 号版本）。
+
 ## @babel/runtime-corejs3（TODO）
+
+它是 `@babel/runtime` 的加强版，它包含 `@babel/runtime` 、 `regenerator-runtime` 、 `core-js` （ 3 号版本）。
 
 ## @babel/plugin-transform-runtime
 
-一个旨在通过重用代码来节省体积的插件，它具体有 3 种作用：
+该插件具有 3 个作用：
 
-1. 将语法辅助函数替换为对语法辅助函数模块的引用（默认激活）；
-2. 如果脚本使用了 ES6+ 的 API ，就自动引入无污染的接口填补模块 1 （默认不激活）；
-3. 如果脚本使用了 Generator 函数或 Async 函数，就自动引入无污染的接口填补模块 2 （默认激活）；
+1. 通过导入外部的语法辅助函数模块来替换脚本中内联的语法辅助函数，以此来减小打包后的体积，该功能默认激活。
+2. 导入外部的 API 辅助函数模块，使用 API 辅助函数模块来替换脚本中出现的 ES6+ API ，以此来填补 API ，又避免污染全局环境，该功能默认禁用。
+3. 导入外部的 API 辅助函数模块，使用 API 辅助函数模块来替换脚本中出现的 Generator Function API 和 Async Function API ，以此来填补 API ，又避免污染全局环境，该功能默认禁用。
 
 ### 作用 1
 
-这里演示如何将语法辅助函数自动的替换为对语法辅助函数模块的引用，示例代码是《@babel_plugin-transform-runtime》的《作用1》。
+关于为什么导入外部的语法辅助函数模块可以减小打包后的模型，详见《@ba be l/runtime》。下文纯粹演示 `@babel/plugin-transform-runtime` 是如何使用外部的语法辅助函数模块来替换脚本中内联的语法辅助函数，示例代码是《作用1》。
 
 步骤如下：
 
@@ -921,9 +925,25 @@ npm install --save-dev @babel/preset-env
 
 无论是哪种模式，它们都是通过修改 `window` 和某些原型链来实现的，这会污染全局环境。对于普通的项目而言，通过修改全局环境来填补 API 是可以的，但是对于库而言，则是不可以的。如果库已经修改过一次全局环境了（为了填补 API ），而依赖该库的项目为了填补 API 又再次修改全局的话，后一次修改就会覆盖前一次修改，如果这两次修改是不同的，就有可能导致库故障，因为库有可能无法在更新后的全局环境中运行。由于填补 API 时，对全局环境的修改取决于 `core-js` 和 `regenerator-runtime` ，所以如果库和项目所依赖的 `core-js` 和 `regenerator-runtime` 的版本号是不同的，就有可能导致上述故障。
 
-因此库需要使用一种不污染全局变量的方式来填补 API ，相应的解决办法就是：如果脚本中使用了 ES6+ 的 API ，就引入「无污染的接口填补模块」来填补该 API ，并修改原代码，使其调用新引入的模块，而不是 ES6+ 的 API 。
+因此库需要使用一种不污染全局变量的方式来填补 API ，相应的解决办法就是：导入外部的 API 辅助函数模块，再将 ES6+ API 替换为 API 辅助函数模块。
 
-要实现这种办法，就需要使用 `@babel/plugin-transform-runtime` 并配置参数。示例代码是《@babel_plugin-transform-runtime》的《作用2》。
+打个比方，假如脚本中使用了 `Promise` ， Babel 会导入相应的 API 辅助函数模块 `promise.js` ，然后将 `Promise` 修改为 `_Promise` ：
+
+```js
+const p = Promise;
+```
+
+会被转译为：
+
+```js
+var _promise = require("@babel/runtime-corejs3/core-js-stable/promise");
+
+var p = _promise;
+```
+
+这样就既填补了 Promise API ，又避免了污染全局环境。
+
+下文纯粹演示如何使用 `@babel/plugin-transform-runtime` 来实现该功能，示例代码是《作用2》。
 
 步骤如下：
 
@@ -944,8 +964,6 @@ npm install --save-dev @babel/preset-env
        }
    }
    ```
-
-   `@babel/runtime-corejs3` 是 `@babel/runtime` 的升级版，它不仅仅包含 `@babel/runtime` 的语法辅助函数模块，还包含 `core-js` （ 3 号大版本）的 API polyfill ，只不过它们是无污染的接口填补模块。
 
 2. 配置 `babel.config.json` ，内容如下：
 
@@ -1008,13 +1026,17 @@ npm install --save-dev @babel/preset-env
 
 ### 作用 3
 
-过去通过导入 `regenerator-runtime` 来补齐 Generator Function API 和 Async Function API ，但是这会污染全局对象，比如 `window` 被添加了一个 `regeneratorRuntime` 对象。
+过去通过将脚本与 `regenerator-runtime` 打包在一起来实现填补 `Generator Function API` 和 `Async Function API` ，但是这会污染全局环境，比如它会挂载一个 `window.regeneratorRuntime` 。
+
+> 使用该功能时，脚本不能写 `import "regenerator-runtime/runtime"` ，因为该语句会被直接保留下来。
+
+如果想要既不改变全局环境，又填补 `Generator Function API` 和 `Async Function API` ，就需要 `regenerator: true` 。
 
 为了能够无污染的填补这两个 API ，就需要激活 ``
 
 ???????????????????????????
 
-
+TODO：作用2中要补充描述“可以在脚本中导入@babel/runtime-corejs3吗？它不会被直接保留下来吗？”。
 
 ## regenerator-runtime
 
