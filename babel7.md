@@ -726,6 +726,8 @@ npm install --save-dev @babel/preset-env
 
 ## @babel/runtime
 
+> 安装 `@babel/preset-env` 时会自动安装 `@babel/runtime` ，但我还是建议再手动安装一遍 `@babel/runtime` 。
+
 该包存储了所有的语法辅助函数模块，每个模块都封装了一个语法辅助函数。
 
 转译某些语法时会产生「语法辅助函数」，语法辅助函数用于辅助转译后的语法的运行。默认情况下， Babel 会在转译结果文件中写入语法辅助函数，比如转译 `class` 时， Babel 会在转译结果文件中写入 3 个函数： `_defineProperties` 、 `_createClass` 、 `_classCallCheck` 。示例代码是《如何使用@babel_runtime》。
@@ -839,6 +841,10 @@ npm install --save-dev @babel/preset-env
 
 ## @babel/plugin-transform-runtime
 
+！！后两个作用原来叫 API 转换！！！
+
+
+
 该插件具有 3 个作用：
 
 1. 通过导入外部的语法辅助函数模块来替换脚本中内联的语法辅助函数，以此来减小打包后的体积，该功能默认激活。
@@ -853,21 +859,60 @@ npm install --save-dev @babel/preset-env
 
 #### helpers
 
+描述：是否使用语法辅助函数模块来替代内联语法辅助函数。
+
+默认值： `true`
+
+取值：
+
+1.  `true` ：使用语法辅助函数模块来替代内联语法辅助函数。
+2.  `false` ：不使用语法辅助函数模块来替代内联语法辅助函数。
+
+#### corejs
+
+描述：是否做 API 转换（指除了 Generator Function API 和 Async Function API 之外的所有 API ）。
+
 默认值： `false`
 
 取值：可取以下其一
 
-1.  `false` ：
-2.  `2` ：
-3.  `3` ：
-
-#### corejs
+1.  `false` ：不做 API 转换。
+2.  `2` ：做 API 转换， API 转换辅助函数取自 `@babel/runtime-corejs3` 。
+3.  `3` ：做 API 转换， API 转换辅助函数取自 `@babel/runtime-corejs2` 。
 
 #### regenerator
 
+描述：是否做 API 转换（指 Generator Function API 和 Async Function API ）。
+
+默认值： `true`
+
+取值：
+
+1. `true` ：做。
+2. `false` ：不做。
+
 #### absoluteRuntime
 
-#### Version
+描述：是否自定义 `@babel/plugin-transform-runtime` 引入 `@babel/runtime` 模块的路径规则。几乎用不到该参数，取默认值就行，因为只要正常的将包安装至 `node_modules` 文件夹中，就不需要自定义包的路径。
+
+默认值： `false`
+
+取值：
+
+1.  `false` ：不需要自定义包的路径。
+2. 表示路径的字符串。
+
+#### version
+
+描述：设置 `@babel/plugin-transform-runtime` 应该基于哪个版本的 `@babel/runtime` 或 `@babel/runtime-corejs2` 或 `@babel/runtime-corejs3` 来运行， `@babel/plugin-transform-runtime` 将会根据版本号来决定使用哪些特性。
+
+默认值： `7.0.0`
+
+取值： `@babel/runtime` 或 `@babel/runtime-corejs2` 或 `@babel/runtime-corejs3` 的版本号的字符串。
+
+例子：如果项目依赖的 `@babel/runtime-corejs3` 的版本是 `"^7.16.5"` ，则 `version` 取 `"^7.16.5"` 。
+
+最佳实践： `version` 的值照抄 `@babel/runtime` 或 `@babel/runtime-corejs2` 或 `@babel/runtime-corejs3` 的版本号的字符串，这样可以让打包后的体积更小。
 
 ### 作用 1
 
