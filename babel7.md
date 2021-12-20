@@ -829,13 +829,13 @@ npm install --save-dev @babel/preset-env
 
 这就是 `@babel/runtime` 的使用方法。此外， `@babel/plugin-transform-runtime` 插件可以自动化这个替换工序。
 
-## @babel/runtime-corejs2（TODO）
+## @babel/runtime-corejs2
 
-它是 `@babel/runtime` 的加强版，它包含 `@babel/runtime` 、 `regenerator-runtime` 、 `core-js` （ 2 号版本）。
+它是 `@babel/runtime` 的加强版，它包含 `@babel/runtime` 、 `regenerator-runtime` 、 `core-js` （ 2 号版本）， 2 号版本的 `core-js` 仅支持全局变量（例如 `Promise` ）和静态属性（例如 `Array.from` ）。
 
-## @babel/runtime-corejs3（TODO）
+## @babel/runtime-corejs3
 
-它是 `@babel/runtime` 的加强版，它包含 `@babel/runtime` 、 `regenerator-runtime` 、 `core-js` （ 3 号版本）。
+它是 `@babel/runtime` 的加强版，它包含 `@babel/runtime` 、 `regenerator-runtime` 、 `core-js` （ 3 号版本）， 3 号版本 `core-js` 不仅支持全局变量和静态属性，还支持实例属性（例如 `Array.prototype.includes` ）。
 
 ## @babel/plugin-transform-runtime
 
@@ -844,6 +844,30 @@ npm install --save-dev @babel/preset-env
 1. 通过导入外部的语法辅助函数模块来替换脚本中内联的语法辅助函数，以此来减小打包后的体积，该功能默认激活。
 2. 导入外部的 API 辅助函数模块，使用 API 辅助函数模块来替换脚本中出现的 ES6+ API ，以此来填补 API ，又避免污染全局环境，该功能默认禁用。
 3. 导入外部的 API 辅助函数模块，使用 API 辅助函数模块来替换脚本中出现的 Generator Function API 和 Async Function API ，以此来填补 API ，又避免污染全局环境，该功能默认禁用。
+
+> 如果我们使用 `@babel/plugin-transform-runtime` 来补齐 API ，就不要再使用 `core-js` 和 `regenertor-runtime` （或类似的）的 polyfill 文件了，自然而然也不要使用 `@babel/preset-env` 的 `useBuiltIns` 特性了（ `targets` 属性能用）。
+>
+> 如果使用了 `@babel/plugin-transform-runtime` 后，还 `import "core-js/stable"` 或 `import "regenerator-runtime/runtime"` ，那么这两条语句会被直接保留下来。
+
+### 参数
+
+#### helpers
+
+默认值： `false`
+
+取值：可取以下其一
+
+1.  `false` ：
+2.  `2` ：
+3.  `3` ：
+
+#### corejs
+
+#### regenerator
+
+#### absoluteRuntime
+
+#### Version
 
 ### 作用 1
 
@@ -1032,17 +1056,74 @@ var p = _promise;
 
 ### 作用 3
 
-过去通过将脚本与 `regenerator-runtime` 打包在一起来实现填补 `Generator Function API` 和 `Async Function API` ，但是这会污染全局环境，比如它会挂载一个 `window.regeneratorRuntime` 。
+过去通过将脚本与 `regenerator-runtime` 打包在一起来实现填补 `Generator Function API` 和 `Async Function API` ，但是这会污染全局环境。
 
-> 使用该功能时，脚本不能写 `import "regenerator-runtime/runtime"` ，因为该语句会被直接保留下来。
+激活 `regenerator` 属性可以既不污染全局环境，又可以补齐这两个 API ，注意必须使用 `@babel/preset-env` 来转译这两个 API ，因为旧环境不支持它们的语法。示例代码是《作用3》。
 
-如果想要既不改变全局环境，又填补 `Generator Function API` 和 `Async Function API` ，就需要 `regenerator: true` 。
+步骤如下：
 
-从这里开始，使用async来测试
+1. 下载相关的包， `babel.config.json` 内容如下：
 
-TODO：作用2中要补充描述“可以在脚本中导入@babel/runtime-corejs3吗？它不会被直接保留下来吗？”。
+   ```json
+   {
+       "devDependencies": {
+           "@babel/cli": "^7.16.0",
+           "@babel/core": "^7.16.5",
+           "@babel/plugin-transform-runtime": "^7.16.5",
+           "@babel/preset-env": "^7.16.5",
+           "webpack": "^5.65.0",
+       "webpack-cli": "^4.9.1"
+       },
+       "dependencies": {
+           "@babel/runtime-corejs3": "^7.16.5"
+       }
+   }
+   ```
 
-从《作用3的测试》开始，写这一小节。
+2. 创建 `a.js` ，内容如下：
+
+   ```js
+   async function f() { console.log( 1 ) }
+   f();
+   ```
+
+3. 配置转译参数， `babel.config.json` 内容如下：
+
+   ```json
+   {
+       "presets": [["@babel/preset-env"]],
+       "plugins": [[
+           "@babel/plugin-transform-runtime",
+           {
+               "helpers": true,
+               "corejs": 3,
+               "regenerator": true,
+               "absoluteRuntime": false,
+               "version": "^7.16.5"
+           }
+       ]]
+   }
+   ```
+
+   由于 `Generator Function API` 和 `Async Function API` 使用了特殊的语法，比如 `async` ，而旧环境不支持这些语法，因为需要对它们进行语法的转译。
+
+   由于 `Async Function API` 的返回值是 `Promise` 实例，所以也需要激活 `corejs` 属性来补齐 Promise API ，否则旧环境会抛出 `ReferenceError: Promise is not defined` 。
+
+   激活 `helpers` 是因为可以减少 Babel 之后的脚本的代码量（语法辅助函数模块替代了内联的语法辅助函数），可以让示例更精简。
+
+4. 执行转译， npm 命令如下：
+
+   ```
+   npx babel a.js -o b.js
+   ```
+
+5. 执行打包， npm 命令如下：
+
+   ```
+   npx webpack ./b.js -o ./b --mode production
+   ```
+
+6. 打包后获得 `./b/main.js` 文件，将该文件放入 HTML 文件中执行，控制台将会输出 `1` 。
 
 ## regenerator-runtime
 
