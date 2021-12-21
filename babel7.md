@@ -602,6 +602,14 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 
 # 详解 Babel 包
 
+## @babel/core
+
+Babel 的核心包，无论是转译语法还是填补 API ，都需要使用该包。
+
+```
+npm install --save-dev @babel/core
+```
+
 ## @babel/cli
 
 如果想要通过命令行来使用 Babel ，就需要安装它。
@@ -610,13 +618,41 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 npm install --save-dev @babel/cli
 ```
 
-## @babel/core
+下面介绍一些可能有用的技巧：
 
-Babel 的核心包。
+1. 将转译后的代码输出到 Node.js 的标准输出流
 
-```
-npm install --save-dev @babel/core
-```
+   ```
+   npx babel a.js
+   ```
+
+2. 将转译后的代码写入到文件中
+
+   ```
+   npx babel a.js -o b.js
+   ```
+
+   或
+
+   ```
+   npx babel a.js --out-file b.js
+   ```
+
+   `-o` 是 `--out-file` 的简写。
+
+3. 转译整个文件夹下的 JS 脚本，并将结果输出至目标文件夹
+
+   ```
+   npx babel input_file -d output_file
+   ```
+
+   或
+
+   ```
+   npx babel input_file --out-dir output_file
+   ```
+
+   `-o` 是 `--out-dir` 的简写。
 
 ## @babel/preset-env
 
