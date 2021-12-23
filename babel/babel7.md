@@ -146,25 +146,7 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
    var f = function f(_) {};
    ```
 
-------------------------------------------------------------
 
-从这里开始
-
-从这里开始
-
-从这里开始
-
-从这里开始
-
-从这里开始
-
-从这里开始
-
-从这里开始
-
-从这里开始
-
-从这里开始
 
 # 如何填补 API（TODO：完善定义）
 
@@ -345,6 +327,26 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 > `core-js` 和 `regenerator-runtime` 是组成 `@babel/polyfill` 的唯二 2 个子包，组合使用前两者和单独使用后一者的效果是差不多的，区别在于 `@babel/polyfill` 内部依赖的 `core-js` 被锁死在了 `2.x.x` 版本，而 `3.0.0` 版本的 `core-js` 早在 2018 年就发布了， 3 号大版本新增了许多 polyfill ，比如 `Array.prototype.includes` 。这意味着 `@babel/polyfill` 无法填补这些新的 API ，所以不应再使用 `@babel/polyfill` ，而是使用 `core-js` 和 `regenerator-runtime` 。
 >
 > 如果安装了 `core-js` 和 `regenerator-runtime` 后再安装 `@babel/polyfill` ， `@babel/polyfill` 内部的 `core-js` 和 `regeneragor-runtime` 就会覆盖前面下载的 `core-js` 和 `regenerator-runtime` ，这就意味着旧版本覆盖了新版本。不仅如此，这还会引发「引用错误」异常，原因是在单独使用 `core-js` 时，我们的脚本需要这么引用它 `import "core-js/stable";` ，但是 `stable` 文件是自 3 号大版本起才有的。
+
+---
+
+从这里开始
+
+从这里开始
+
+从这里开始
+
+从这里开始
+
+从这里开始
+
+从这里开始
+
+从这里开始
+
+从这里开始
+
+从这里开始
 
 ## 按需填补 - entry
 
