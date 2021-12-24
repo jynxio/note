@@ -240,22 +240,125 @@ ES6+ 的 polyfill 文件共有 3 种：
 
 ## 按需填补
 
-按需填补分为 2 种类型：
+如果激活了 `@babel/preset-env` 的 `useBuiltIns` 属性， Babel 就会按需填补目标运行时所需的接口，具体来说就是 Babel 会自动解析 `core-js` 和 `regenerator-runtime` 。
 
-- 补齐目标运行时缺失的所有 ES6+ API ，称为「按需填补-entry」。
-- 补齐目标运行时缺失的且被脚本使用到了的 ES6+ API ，称为「按需填补-usage」。
+Babel 会自动的从 `core-js` 中筛选出真正需要的接口模块，然后将它们导入到脚本中去。另外，如果目标运行时需要填补 Generator Function API 或 Async Function API ，Babel 就会将 `regenerator-runtime` 导入到脚本中去，否则就不会将 `regenerator-runtime` 导入到脚本中去。
 
-它们都是通过设置 `@babel/preset-env` 的 `targets` 参数和 `useBuiltIns` 参数来实现的，其中「按需填补-entry」需要设置 `useBuiltIns: "entry"` ，「按需填补-usage」需要设置 `useBuiltIns: "usage"` 。
+Babel 通过 `@babel/preset-env` 的 `targets` 字段来了解目标运行时的状态，这样才知道目标运行时缺少什么 ES6+ API 。
 
-### 按需填补-entry
+Babel 通过 `@babel/preset-env` 的 `corejs` 字段来了解项目所依赖的 `core-js` 的版本。因为“知道 `core-js` 里面有什么接口模块”是“从 `core-js` 中筛选出真正需要的接口模块”的前提，而且不同版本的 `core-js` 之间的内容是有区别的，所以如果 Babel 想要知道项目依赖的 `core-js` 里面有什么，就需要知道它的版本号。
 
-示例代码是《entry》，步骤如下：
+最后， Babel 通过 `@babel/preset-env` 的 `useBuiltIns` 字段来确定按需填补的类型：
 
+- `useBuiltIns: false` ：不激活按需填补特性。
+- `useBuiltIns: "entry"` ：激活按需填补特性， Babel 会补齐目标运行时所缺失的所有 ES6+ API ，这被称为「entry填补」
+- `useBuiltIns: "usage"` ：激活按需填补特性， Babel 会补齐目标运行时所缺失的且被脚本使用到了的 ES6+ API ，这杯称为「usage填补」。
 
+> 注：如果想要激活按需填补特性，还必须在脚本中显式书写 `import "core-js/stable"` 和 `import "regenerator-runtime/runtime"` 。
 
-### 按需填补-usage
+> Babel 不仅仅可以解析 `core-js` 和 `regenerator-runtime` ，也可以解析 `@babel/polyfill`， 因为 `@babel/polyfill` 已经被废弃了，所以不展开介绍。
 
+### entry填补
 
+Babel 会从 `core-js` 中筛选出目标运行时所缺少的 ES6+ API 的接口模块，然后导入到脚本中去。如果目标运行时还缺少 Generator Function API 或 Async Function API ， Babel 还会将 `regenerator-runtime` 导入脚本。示例代码是《entry》，步骤如下：
+
+1. 下载相关的包， `package.json` 内容如下：
+
+   ```json
+   {
+       "dependencies": {
+           "core-js": "^3.20.1",
+           "regenerator-runtime": "^0.13.9"
+       },
+       "devDependencies": {
+           "@babel/cli": "^7.16.0",
+           "@babel/core": "^7.16.5",
+           "@babel/preset-env": "^7.16.5"
+       }
+   }
+   ```
+
+2. 创建 `a.js` ，内容如下：
+
+   ```js
+   import "core-js/stable";
+   import "regenerator-runtime/runtime";
+   ```
+
+3. 创建 `babel-chrome-90.config.json` 和 `babel-chrome-95.config.json` ，它们的唯一区别是，前者的目标环境是 chrome 90 ，后者的则是 chrome 95 。
+
+   `babel-chrome-90.config.josn` 内容如下：
+
+   ```json
+   {
+       "presets": [[
+           "@babel/preset-env",
+           {
+               "targets": "chrome 90",
+               "useBuiltIns": "entry",
+               "corejs": "3.20.1"
+           }
+       ]]
+   }
+   ```
+
+   `babel-chrome-95.config.json` 内容如下：
+
+   ```json
+   {
+       "presets": [[
+           "@babel/preset-env",
+           {
+               "targets": "chrome 95",
+               "useBuiltIns": "entry",
+               "corejs": "3.20.1"
+           }
+       ]]
+   }
+   ```
+
+4. 分别使用 `babel-chrome-90.config.json` 和 `babel-chrome-95.config.json` 来对 `a.js` 进行转译， npm 命令如下：
+
+   ```
+   npx babel a.js -o c90.js --config-file ./babel-chrome-90.config.json
+   npx babel a.js -o c95.js --config-file ./babel-chrome-95.config.json
+   ```
+
+5. 转译成功，获得 `c90.js` 和 `c95.js` 。
+
+   由于 chrome 90 和 chrome 95 都已经支持了 Generator Function API 和 Async Function API ，所以 `c90.js` 和 `c95.js` 都直接移除了 `import "regenerator-runtime/runtime"` 语句。
+
+   由于 chrome 90 比 chrome 95 缺失更多 ES6+ API ，所以 `c90.js` 会比 `c95.js` 导入更多接口模块。
+
+   `c90.js` 内容如下：
+
+   ```js
+   "use strict";
+   require("core-js/modules/es.error.cause.js");
+   require("core-js/modules/es.aggregate-error.cause.js");
+   require("core-js/modules/es.array.at.js");
+   require("core-js/modules/es.object.has-own.js");
+   require("core-js/modules/es.string.at-alternative.js");
+   require("core-js/modules/es.typed-array.at.js");
+   require("core-js/modules/web.dom-exception.stack.js");
+   require("core-js/modules/web.immediate.js");
+   require("core-js/modules/web.structured-clone.js");
+   ```
+
+   `c95.js` 内容如下：
+
+   ```js
+   "use strict";
+   require("core-js/modules/web.dom-exception.stack.js");
+   require("core-js/modules/web.immediate.js");
+   require("core-js/modules/web.structured-clone.js");
+   ```
+
+### usage填补
+
+Babel 会从 `core-js` 中筛选出目标运行时所缺少的且被脚本使用到了的 ES6+ API 的接口模块，然后导入到脚本中去。如果目标运行时还缺少 Generator Function API 或 Async Function API ，且脚本也刚好使用到了 Generator Function API 或 Async Function API 的话 ， Babel 还会将 `regenerator-runtime` 导入脚本。示例代码是《usage》，步骤如下：
+
+从这里开始！注意usage是不需要import两个包的，entry就必须要，因此要改掉上面的内容！！！！！！
 
 ## 特别的 Generator Function 和 Async Function
 
