@@ -240,10 +240,20 @@ ES6+ 的 polyfill 文件共有 3 种：
 
 ## 按需填补
 
-按需填补有 2 种类型：
+按需填补分为 2 种类型：
 
-- 补齐目标运行时缺失的所有 ES6+ API 。
-- 补齐目标运行时缺失的且被脚本使用到了的 ES6+ API 。
+- 补齐目标运行时缺失的所有 ES6+ API ，称为「按需填补-entry」。
+- 补齐目标运行时缺失的且被脚本使用到了的 ES6+ API ，称为「按需填补-usage」。
+
+它们都是通过设置 `@babel/preset-env` 的 `targets` 参数和 `useBuiltIns` 参数来实现的，其中「按需填补-entry」需要设置 `useBuiltIns: "entry"` ，「按需填补-usage」需要设置 `useBuiltIns: "usage"` 。
+
+### 按需填补-entry
+
+示例代码是《entry》，步骤如下：
+
+
+
+### 按需填补-usage
 
 
 
