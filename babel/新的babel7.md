@@ -254,13 +254,13 @@ Babel 通过 `@babel/preset-env` 的 `corejs` 字段来了解项目所依赖的 
 - `useBuiltIns: "entry"` ：激活按需填补特性， Babel 会补齐目标运行时所缺失的所有 ES6+ API ，这被称为「entry填补」
 - `useBuiltIns: "usage"` ：激活按需填补特性， Babel 会补齐目标运行时所缺失的且被脚本使用到了的 ES6+ API ，这杯称为「usage填补」。
 
-> 注：如果想要激活按需填补特性，还必须在脚本中显式书写 `import "core-js/stable"` 和 `import "regenerator-runtime/runtime"` 。
-
-> Babel 不仅仅可以解析 `core-js` 和 `regenerator-runtime` ，也可以解析 `@babel/polyfill`， 因为 `@babel/polyfill` 已经被废弃了，所以不展开介绍。
+> 注： Babel 不仅仅可以解析 `core-js` 和 `regenerator-runtime` ，也可以解析 `@babel/polyfill`， 因为 `@babel/polyfill` 已经被废弃了，所以不展开介绍。
 
 ### entry填补
 
 Babel 会从 `core-js` 中筛选出目标运行时所缺少的 ES6+ API 的接口模块，然后导入到脚本中去。如果目标运行时还缺少 Generator Function API 或 Async Function API ， Babel 还会将 `regenerator-runtime` 导入脚本。示例代码是《entry》，步骤如下：
+
+> 注：如果想要激活「entry填补」特性，还必须在脚本中显式书写 `import "core-js/stable"` 和 `import "regenerator-runtime/runtime"` 。
 
 1. 下载相关的包， `package.json` 内容如下：
 
@@ -358,7 +358,89 @@ Babel 会从 `core-js` 中筛选出目标运行时所缺少的 ES6+ API 的接�
 
 Babel 会从 `core-js` 中筛选出目标运行时所缺少的且被脚本使用到了的 ES6+ API 的接口模块，然后导入到脚本中去。如果目标运行时还缺少 Generator Function API 或 Async Function API ，且脚本也刚好使用到了 Generator Function API 或 Async Function API 的话 ， Babel 还会将 `regenerator-runtime` 导入脚本。示例代码是《usage》，步骤如下：
 
-从这里开始！注意usage是不需要import两个包的，entry就必须要，因此要改掉上面的内容！！！！！！
+> 注：
+>
+> 不能在脚本中显式书写 `import "core-js/stable"` 和 `import "regenerator-runtime/runtime"` 。
+>
+> 「usage填补」和「entry填补」的另一个区别是，「usage填补」不需要书写这两条语句就能进行按需填补，如果书写了这两条语句，这两条语句就会被直接保留下来。
+
+1. 下载相关的包， `package.json` 内容如下：
+
+   ```json
+   {
+       "dependencies": {
+           "core-js": "^3.20.1",
+           "regenerator-runtime": "^0.13.9"
+       },
+       "devDependencies": {
+           "@babel/cli": "^7.16.0",
+           "@babel/core": "^7.16.5",
+           "@babel/preset-env": "^7.16.5"
+       }
+   }
+   ```
+
+2. 创建 `a.js` ，内容如下：
+
+   ```js
+   async function f() {}
+   ```
+
+3. 配置转译的规则， `babel.config.json` 内容如下：
+
+   ```json
+   {
+       "presets": [[
+           "@babel/preset-env",
+           {
+               "targets": "firefox 27",
+               "useBuiltIns": "usage",
+               "corejs": "3.20.1"
+           }
+       ]]
+   }
+   ```
+
+4. 执行 Babel ，npm 命令如下：
+
+   ```
+   npx babel a.js -o b.js
+   ```
+
+5. 执行成功，获得 `b.js` ，内容如下：
+
+   ```js
+   "use strict";
+   
+   require("regenerator-runtime/runtime.js");
+   require("core-js/modules/es.object.to-string.js");
+   require("core-js/modules/es.promise.js");
+   
+   function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
+   
+   function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
+   
+   function f() {
+     return _f.apply(this, arguments);
+   }
+   
+   function _f() {
+     _f = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
+       return regeneratorRuntime.wrap(function _callee$(_context) {
+         while (1) {
+           switch (_context.prev = _context.next) {
+             case 0:
+             case "end":
+               return _context.stop();
+           }
+         }
+       }, _callee);
+     }));
+     return _f.apply(this, arguments);
+   }
+   ```
+
+   显然，脚本中只引入了目标运行时缺失的且被脚本使用到了的 3 个 ES6+ API ，其中引入 `Promise` 的原因是 Async Function 的返回值是 `Promise` 实例。而且由于目标运行时不支持 `async` 语法，因此 Babel 也对 Async Function 进行了语法转译。
 
 ## 特别的 Generator Function 和 Async Function
 
