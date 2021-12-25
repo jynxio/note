@@ -136,7 +136,11 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 
    果然，数值分隔符语法被转译了，而箭头函数语法被保留了。
 
+## 语法辅助函数模块
 
+「语法辅助函数」是语法转译的产物之一，
+
+转译某些语法的时候会产生「内联语法辅助函数」，语法辅助函数用于辅助转译后的语法的正常运行
 
 # 如何填补接口
 
@@ -149,7 +153,7 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 >
 > 如果目标运行时缺失了 ES5 的 API ， Babel 能填补吗？换言之 Babel 到底能填补多低级的 API 呢？
 
-另外，如果脚本使用了目标运行时所不支持的 ES6+ API ，而我们又希望可以在不污染全局环境的情况下，就让脚本可以在目标运行时中正常运行，就需要使用特殊的填补方式，详见《针对库的填补》。
+另外，如果我们希望可以在不污染全局环境的前提下，就让使用了 ES6+ API 的脚本可以在不支持 ES6+ API 的运行时中正常运行，就需要使用 Babel 提供的「接口转译」特性，详见《如何转换接口》。
 
 ## 完全填补
 
@@ -444,7 +448,7 @@ Babel 会从 `core-js` 中筛选出目标运行时所缺少的且被脚本使用
 
    显然，脚本中只引入了目标运行时缺失的且被脚本使用到了的 3 个 ES6+ API ，其中引入 `Promise` 的原因是 Async Function 的返回值是 `Promise` 实例。而且由于目标运行时不支持 `async` 语法，因此 Babel 也对 Async Function 进行了语法转译。
 
-## 特别的 Generator Function 和 Async Function
+## Generator Function 和 Async Function
 
 相比其他的 ES6+ API ， `Generator Function` 和 `Async Function` 使用了新的语法，比如 `function*` 、 `async` 等等，这些语法是无法在不支持 `Generator Function` 和 `Async Function` 的旧运行时中运行的，因此哪怕你的脚本引入了 `regenerator-runtime` ，最后也会因为旧运行时不支持这些语法而导致脚本抛出异常。
 
@@ -515,10 +519,237 @@ Babel 会从 `core-js` 中筛选出目标运行时所缺少的且被脚本使用
 >
 > 建议如果使用了 `regenerator-runtime` ，也要使用 `core-js` 。
 
-## 针对库的填补
 
-「完全填补」和「按需填补」都是通过为全局环境补充 ES6+ API 来实现“让原本不支持某些ES6+ API 的运行时可以支持这些 ES6+ API ”，大致原理是： `core-js` 模块和 `regenerator-runtime` 模块可以为全局环境补充 ES6+ API ，这些 ES6+ API 是使用旧的 API 来模拟的，然后 Babel 会根据需要来为你的脚本引入这 2 个模块的所有或部分内容，如此一来你的脚本就可以在旧运行时中正常运行了，哪怕这个旧运行时原本缺少你的脚本所用到的某些 ES6+ API ，因为你的脚本帮旧运行时重新实现了这些 ES6+ API 。
 
-对于普通的项目而言，虽然这种填补方式会污染全局环境，但这是完全可以接受的。但是对于库而言，这是不可接受的。比如，你开发的库修改了全局环境，依赖你的库的项目也修改了全局环境，如果 2 次修改是不同的，就会导致库或项目无法正常运行。
+# 如何转译接口
 
-因此，对于库而言，它不能使用前文的「完全填补」和「按需填补」，库需要一种可以不污染全局环境的填补接口的方法。 Babel 为此提供的方法是：如果你的脚本使用了某些目标运行时所不支持的 ES6+ API ， Babel 就会将与这些 API 有关的代码转译成「等效代码」，「等效代码」是指使用目标运行时所支持的语法和 API 来模拟你的代码，以使你的代码可以在目标运行时中正常运行，又无需污染全局环境。另外，在「等效代码」中，有一部分代码是引用自外部的「接口辅助函数模块」，「接口辅助函数模块」是类似于「语法辅助函数模块」的东西。
+《如何填补接口》中的方法是通过修改全局环境来实现“让原本不支持 ES6+ API 的运行时支持 ES6+ API ”，大致原理是： `core-js` 模块和 `regenerator-runtime` 模块使用 ES5 的语法和 API 来在全局环境中重新生成 ES6+ API ，然后 Babel 会向你的脚本按需引入 `core-js` 和 `regenerator-runtime` 。
+
+对于普通的项目而言，虽然填补接口会污染全局环境，但这是完全可以接受的。但是对于库而言，则是不可接受的。比如，你开发的库修改了全局环境，依赖你的库的项目也修改了全局环境，如果 2 次修改是不同的，就会导致库或项目无法正常运行。因此，库不能使用填补的方式来 polyfill 接口。
+
+「转译接口」是另一种 polyfill 接口的方法，它会将脚本中与 ES6+ API 相关的代码转译成由 ES5 的语法和 API 组成的代码，这相当于将你的代码“降级”成了 ES5 运行时可以正常运行的代码，并且这种方法不会修改全局环境。如果库需要 polyfill 接口，就应当采用该方法。
+
+> 代码被“降级”后，脚本中会引入一些外部模块，这些模块被称为「接口辅助函数模块」，它类似于「语法辅助函数模块」。
+
+一个不完整的例子是：如果脚本中使用了 `Promise` ， Babel 就会导入相应的接口辅助函数模块（ `promise.js` ），然后将原代码中的 `Promise` 改成 `_promise` 。
+
+```js
+// 接口转译之后
+const p = Promise;
+
+// 接口转译之前
+var _promise = require("@babel/runtime-corejs3/core-js-stable/promise");
+var p = _promise;
+```
+
+
+
+具体的示例代码是《转译接口》，步骤如下：
+
+1. 下载相关的包， `package.json` 内容如下：
+
+   ```json
+   {
+       "devDependencies": {
+           "@babel/cli": "^7.16.0",
+           "@babel/core": "^7.16.5",
+           "@babel/plugin-transform-runtime": "^7.16.5",
+           "@babel/preset-env": "^7.16.5"
+       },
+       "dependencies": {
+           "@babel/runtime-corejs3": "^7.16.5"
+       }
+   }
+   ```
+
+2. 配置转译规则， `babel.config.json` 内容如下：
+
+   ```json
+   {
+       "presets": ["@babel/preset-env"],
+       "plugins": [[
+           "@babel/plugin-transform-runtime",
+           {
+               "helpers": false,
+               "corejs": 3,
+               "regenerator": true,
+               "version": "^7.16.5"
+           }
+       ]]
+   }
+   ```
+
+   `@babel/preset-env` 是执行接口转译的前提。
+
+    `@babel/plugin-transform-runtime` 是执行接口转译的核心， `"helpers": false` 是指不使用语法辅助函数模块，`"corejs": 3` 是指激活接口转换特性且使用 `@babel/runtime-corejs3` 作为接口转译的原料（只转译除了 Generator Function 和 Async Function 之外的 ES6+ API ）， `"regenerator": true` 是指激活接口转译特性（只转译 Generator Function 和 Async Function ）， `"version": "^7.16.5"` 是指原料的版本号（原料是指 `@babel/runtime` 或 `@babel/runtime-corejs2` 或 `@babel/runtime-corejs3`  ）。参数的含义详见《@babel/plugin-transform-runtime》。
+
+3. 创建 `a.js` ，内容如下：
+
+   ```js
+   async function f() {}
+   ```
+
+4. 执行接口转译和语法转译， npm 命令如下：
+
+   ```js
+   npx babel a.js -o b.js
+   ```
+
+   由于脚本使用了 `async` 语法，因此语法转译是必须的。转译接口时顺带转译语法是一个好习惯，并且这也是强制性的，因为你必须使用 `@babel/preset-env` 。
+
+5. 转换成功，得到 `b.js` ，内容如下：
+
+   ```js
+   "use strict";
+   
+   var _regenerator = _interopRequireDefault(require("@babel/runtime-corejs3/regenerator"));
+   
+   var _promise = _interopRequireDefault(require("@babel/runtime-corejs3/core-js-stable/promise"));
+   
+   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
+   
+   function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { _promise["default"].resolve(value).then(_next, _throw); } }
+   
+   function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new _promise["default"](function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
+   
+   function f() {
+     return _f.apply(this, arguments);
+   }
+   
+   function _f() {
+     _f = _asyncToGenerator( /*#__PURE__*/_regenerator["default"].mark(function _callee() {
+       return _regenerator["default"].wrap(function _callee$(_context) {
+         while (1) {
+           switch (_context.prev = _context.next) {
+             case 0:
+             case "end":
+               return _context.stop();
+           }
+         }
+       }, _callee);
+     }));
+     return _f.apply(this, arguments);
+   }
+   
+   ```
+
+   `a.js` 的代码被“降级”至了 ES5 ，导入了接口辅助函数模块（ `regenerator` 和 `promise` 模块 ），插入了内联的语法辅助函数。
+
+
+
+# 预设
+
+预设是一套预先设定好的插件组合，最常用的 4 个官方预设是： `@babel/preset-env` 、 `@babel/preset-flow` 、 `@babel/preset-react` 、 `@babel/preset-typescript` 。
+
+如果 Babel 使用了多个预设，预设的执行顺序是：沿着预设数组从后向前。
+
+> 注：如果 Babel 同时使用了插件和预设， Babel 会先执行插件，后执行预设。
+
+
+
+# 插件
+
+插件是控制 Babel 行为的 JS 程序，比如插件 `@babel/plugin-transform-arrow-functions` 可以将箭头函数转换为普通函数。使用插件可以在更细的粒度上控制 Babel 的行为，最常用的官方插件是 `@babel/plugin-transform-runtime` 。
+
+如果 Babel 使用了多个插件，插件的执行顺序是：沿着插件数组从前向后。
+
+> 注：如果 Babel 同时使用了插件和预设， Babel 会先执行插件，后执行预设。
+
+## @babel/plugin-transform-runtime
+
+> 注：如果没有使用 `@babel/preset-env` ，该插件将不会生效。
+
+该插件有 3 大作用：
+
+1. 使用「语法辅助函数模块」来替换「内联语法辅助函数」，这有助于减小打包后的体积，该功能默认激活。
+2. 对除了 Generator Function API 和 Async Function API 之外的 ES6+ API 执行接口转译，该功能默认禁用。
+3. 对 Generator Function API 和 Async Function API 执行接口转译，该功能默认激活。
+
+功能 1 的示例见《语法辅助函数模块》，功能 2 和 3 的示例见《如何转译接口》。
+
+### helpers
+
+描述：是否使用「语法辅助函数模块」来替换「内联语法辅助函数」。
+
+默认值： `true`
+
+取值：
+
+1.  `true` ：激活。
+2.  `false` ：禁用。
+
+### corejs
+
+描述：是否做接口转译，注意它只转译除了 Generator Function API 和 Async Function API 之外的 ES6+ API 。
+
+默认值： `false`
+
+取值：可取以下其一
+
+1.  `false` ：禁用。
+2.  `2` ：激活，使用来自 `@babel/runtime-corejs2` 的接口辅助函数模块。
+3.  `3` ：激活，使用来自 `@babel/runtime-corejs3` 的接口辅助函数模块。
+
+### regenerator
+
+描述：是否做接口转译，注意它只转译 Generator Function API 和 Async Function API 。
+
+默认值： `true`
+
+取值：
+
+1.  `true` ：激活。
+2.  `false` ：禁用。
+
+> 注：该功能所需的接口辅助函数模块来自 `@babel/runtime/regenerator` 或 `@babel/runtime-corejs2/regenerator` 或 `@babel/runtime-corejs3/regenerator` ，具体使用哪个则取决于 `corejs` 的取值。
+
+### version
+
+描述： runtime 模块版本号。因为该插件需要根据 runtime 模块的版本号来决定可以在内部使用哪些技巧。
+
+最佳实践：照抄 runtime 模块的值，这样打包后的体积会更小。比如如果 `package.json` 中 `"@babel/runtime-corejs3": "^7.16.5"` ，那么就将 `version` 的值设为 `"^7.16.5"` 。
+
+默认值： `"7.0.0"` 
+
+取值： runtime 模块的版本号的字符串值。
+
+> 注：此处的「runtime模块」是指 `@babel/runtime` 或 `@babel/runtime-corejs2` 或 `@babel/runtime-corejs3` ，「runtime模块」不是官方术语，这是本节为了简化描述而自拟的术语。
+
+### absoluteRuntime
+
+描述：是否自定义 `@babel/plugin-transform-runtime` 引入 runtime 模块的路径规则。几乎用不到该参数，取默认值就行，因为只要正常的将包安装至 `node_modules` 文件夹中，就不需要自定义包的路径。
+
+默认值： `false`
+
+取值：
+
+1.  `false` ：不需要自定义包的路径。
+2.  表示路径的字符串。
+
+
+
+# 其他包
+
+## regenerator-runtime
+
+它不是官方包，它用于填补 Generator Function API 和 Async Function API 。该包只有 2 个 JS 文件，第一个 `path.js` 用于获取 `runtime.js` 的绝对路径，第二个 `runtime.js` 用于填补 API 。
+
+由于它只用 1 个 JS 文件来填补 2 个 API ，所以只要需要填补 Generator Function API 或 Async Function API 中的任意一个， Babel 都会导入整个 `regenerator-runtime` 。
+
+
+
+# babel.config.json
+
+用于控制 Babel 的行为的文件，下述文件都可以控制 Babel 的行为，只要选用其一即可：
+
+- `babel.config.json` ，还支持其他文件扩展名，比如 `.js` 、 `.cjs` 、 `.mjs` 。
+- `xxx.babelrc.json` ，还支持其他文件扩展名，比如 `.babelrc` 、 `.js` 、 `.cjs` 、 `.mjs` 。
+- `package.json` 的 `"babel"` 字段。
+
+
+
+# FF27
+
+[Firefox 27 下载地址](https://ftp.mozilla.org/pub/firefox/releases/27.0.1/)
+
+安装完成后，最好禁用浏览器的自动更新： `选项（左上角） => 高级 => 更新` 。
