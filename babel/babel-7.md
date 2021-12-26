@@ -146,7 +146,7 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
             "helpers": true,
             "corejs": 3,
             "regenerator": true,
-            "version"： "^7.16.5"
+            "version": "^7.16.5"
         }
     ]]
 }
