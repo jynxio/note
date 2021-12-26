@@ -111,7 +111,7 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
     },
     "dependencies": {
         "core-js": "^3.20.1",
-        "regenerator-runtime": "^0.13.9"，
+        "regenerator-runtime": "^0.13.9",
 	      "@babel/runtime": "^7.16.5"
     }
 }
