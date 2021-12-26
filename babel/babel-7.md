@@ -1,8 +1,9 @@
 # 目录
-
 - [简介](#简介)
 - [版本](#版本)
 - [最佳实践](#最佳实践)
+  - [适用于项目](#适用于项目)
+  - [适用于项目与库](#适用于项目与库)
 - [如何转译语法](#如何转译语法)
   - [完全转译](#完全转译)
   - [按需转译](#按需转译)
@@ -62,6 +63,110 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 
 
 # 最佳实践
+
+## 适用于项目
+
+该方案的特点：
+
+- 默认的目标运行时是 ES5 ，如果你确定目标运行时的版本，请修改 `targets` 为你的目标运行时，这有助于减小包的体积。
+- 按需转译语法，目标运行时不支持的语法会被降级成目标运行时支持的语法。
+- 使用语法辅助函数模块。
+- 按需填补接口，在全局环境中填补目标运行时所不支持的且被脚本使用到了的 ES6+ API 。
+
+> 注：使用前，请将依赖包更新至彼时的最新版，并修改 `@babel/preset-env` 的 `corejs` 参数和 `@babel/plugin-transform-runtime` 的 `version` 参数。
+
+`babel.config.json` 内容如下：
+
+```json
+{
+    "presets": [[
+        "@babel/preset-env",
+        {
+            "targets": {},
+            "useBuiltIns": "usage",
+            "corejs": "3.20.1"
+        }
+    ]],
+    "plugins": [[
+        "@babel/plugin-transform-runtime",
+        {
+            "helpers": true,
+            "corejs": false,
+            "regenerator": false,
+            "version": "^7.16.5"
+        }
+    ]]
+}
+```
+
+对应的 `package.json` 内容如下：
+
+```json
+{
+    "devDependencies": {
+        "@babel/cli": "^7.16.0",
+        "@babel/core": "^7.16.5",
+        "@babel/plugin-transform-runtime": "^7.16.5",
+        "@babel/preset-env": "^7.16.5"
+    },
+    "dependencies": {
+        "core-js": "^3.20.1",
+        "regenerator-runtime": "^0.13.9"，
+	      "@babel/runtime": "^7.16.5"
+    }
+}
+```
+
+## 适用于项目与库
+
+该方案的特点：
+
+- 默认的目标运行时是 ES5 ，如果你确定目标运行时的版本，请修改 `targets` 为你的目标运行时，这有助于减小包的体积。
+- 按需转译语法，目标运行时不支持的语法会被降级成目标运行时支持的语法。
+- 使用语法辅助函数模块。
+- 按需转译接口，脚本中所有与 ES6+ API 相关的代码都会被转译成由 ES5 的语法和 API 组成的代码。
+- 使用接口辅助函数模块。
+
+> 注：使用前，请将依赖包更新至彼时的最新版，并修改 `@babel/plugin-transform-runtime` 的 `version` 参数。
+
+`babel.config.json` 内容如下：
+
+```json
+{
+    "presets": [[
+        "@babel/preset-env",
+        {
+            "targets": {}
+            "useBuiltIns": false
+        }
+    ]],
+    "plugins": [[
+        "@babel/plugin-transform-runtime",
+        {
+            "helpers": true,
+            "corejs": 3,
+            "regenerator": true,
+            "version"： "^7.16.5"
+        }
+    ]]
+}
+```
+
+对应的 `package.json` 内容如下：
+
+```json
+{
+    "devDependencies": {
+        "@babel/cli": "^7.16.0",
+        "@babel/core": "^7.16.5",
+        "@babel/plugin-transform-runtime": "^7.16.5",
+        "@babel/preset-env": "^7.16.5"
+    },
+    "dependencies": {
+        "@babel/runtime-corejs3": "^7.16.5"
+    }
+}
+```
 
 
 
@@ -832,7 +937,7 @@ var p = _promise;
 
 描述：告知 Babel 目标运行时的状态，该参数用于「按需转译语法」和「按需填补接口」。
 
-默认值： `{}` ，将所有 ES6+ 语法都转译成 ES5 语法，并且不会干涉接口的填补。
+默认值： `{}` ，目标运行时是 ES5 。
 
 数据类型：`string |Array<string> |{[string]: string}`
 
