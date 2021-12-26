@@ -136,11 +136,139 @@ Babel 是一个以 @babel/core 为核心的工具集，每当 @babel/core 发布
 
    果然，数值分隔符语法被转译了，而箭头函数语法被保留了。
 
-## 语法辅助函数模块
+## 语法辅助函数
 
-「语法辅助函数」是语法转译的产物之一，
+某些语法的转译结果是很简洁的，比如箭头函数：
 
-转译某些语法的时候会产生「内联语法辅助函数」，语法辅助函数用于辅助转译后的语法的正常运行
+```js
+// 转译前
+const p = _ => {};
+// 转译后
+const p = function(_) {};
+```
+
+但是另一些语法的转译结果则可能很复杂，比如 `class` 语法：
+
+```js
+// 转译前
+class A {}
+// 转译后
+"use strict";
+function _defineProperties() { /* 省略 */ }
+function _createClass() { /* 省略 */ }
+function _classCallCheck() { /* 省略 */ }
+var A = _createClass(function A() { _classCallCheck(this, A); });
+```
+
+这是因为 Babel 需要编写较多的代码才能模拟出 `class` 语法的功能，另外 Babel 还将模拟代码中可复用的部分抽象成了函数，比如上例中的 `_defineProperties` 、 `_createClass` 、 `_classCallCheck` ，这些函数被称为「语法辅助函数」，它们会被写在转译结果文件的头部。将可复用的模拟代码抽象成语法辅助函数，可以减轻转译结果文件的体积，比如如果一个脚本使用了 10 次 `class` 语法，转译后的模拟代码中也只会有 1 个 `_defineProperties` 、 1 个 `_createClass` 、 1 个 `_classCallCheck` 。
+
+直接写在转译结果文件中的语法辅助函数被称为「内联语法辅助函数」。
+
+如果一个项目有 10 个模块，且每个模块都使用了 `class` 语法，那么该项目在转译后就会产生 10 个相同的 `_defineProperties` 、 `_createClass` 、 `_classCallCheck` 。只要激活 `@babel/plugin-transform-runtime` 的 `helpers` 特性，就可以避免产生这些冗余代码，它的大致原理是： Babel 将每个语法辅助函数都编写成独立的模块，称为「语法辅助函数模块」，所有语法辅助函数模块都被存储在 `@babel/runtime` （或它的加强包）中，激活 `@babel/plugin-transform-runtime` 的 `helpers` 特性后， Babel 在转译语法时就会使用语法辅助函数模块来替换内联语法辅助函数，这样项目中的所有脚本都会共用同一套语法辅助函数模块，自然而然的打包后的 bundle 文件也就不会产生上述冗余代码了。
+
+示例代码时《语法辅助函数》，步骤如下：
+
+1. 下载相关的包， `package.json` 内容如下：
+
+   ```json
+   {
+       "devDependencies": {
+           "@babel/cli": "^7.16.0",
+           "@babel/core": "^7.16.5",
+           "@babel/plugin-transform-runtime": "^7.16.5",
+           "@babel/preset-env": "^7.16.5"
+       },
+       "dependencies": {
+           "@babel/runtime": "^7.16.5"
+       }
+   }
+   ```
+
+2. 创建 `a.js` ，内容如下：
+
+   ```js
+   class A {}
+   ```
+
+3. 创建 `babel-no-helpers.config.json` 和 `babel-use-helpers.config.json` 文件，前者表示禁用 `helpers` 特性，后者表示激活 `helpers` 特性，这是为了对比观察使用内联语法辅助函数和使用语法辅助函数模块的区别。
+
+   `babel-no-helpers.config.json` 内容如下：
+
+   ```json
+   {
+       "presets": ["@babel/preset-env"],
+       "plugins": [[
+           "@babel/plugin-transform-runtime",
+           {
+               "helpers": false,
+               "corejs": false,
+               "regenerator": false,
+               "version": "^7.16.5"
+           }
+       ]]
+   }
+   ```
+
+   `babel-use-helpers.config.json` 内容如下：
+
+   ```js
+   {
+       "presets": ["@babel/preset-env"],
+       "plugins": [[
+           "@babel/plugin-transform-runtime",
+           {
+               "helpers": true,
+               "corejs": false,
+               "regenerator": false,
+               "version": "^7.16.5"
+           }
+       ]]
+   }
+   ```
+
+4. 分别使用 `babel-no-helpers.config.json` 和 `babel-use-helpers.config.json` 来进行语法转译， npm 命令如下：
+
+   ```
+   npx babel a.js -o noHelpers.js --config-file ./babel-no-helpers.config.json
+   npx babel a.js -o useHelpers.js --config-file ./babel-use-helpers.config.json
+   ```
+
+5. 转译成功，获得 `noHelpers.js` 和 `useHelpers.js` 。
+
+   `noHelpers.js` 内容如下：
+
+   ```js
+   "use strict";
+   
+   function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+   
+   function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); Object.defineProperty(Constructor, "prototype", { writable: false }); return Constructor; }
+   
+   function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+   
+   var A = /*#__PURE__*/_createClass(function A() {
+     _classCallCheck(this, A);
+   });
+   ```
+
+   `useHelpers.js` 内容如下：
+
+   ```js
+   "use strict";
+   
+   var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault")["default"];
+   
+   var _createClass2 = _interopRequireDefault(require("@babel/runtime/helpers/createClass"));
+   
+   var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/classCallCheck"));
+   
+   var A = /*#__PURE__*/(0, _createClass2["default"])(function A() {
+     (0, _classCallCheck2["default"])(this, A);
+   });
+   
+   ```
+
+   
 
 # 如何填补接口
 
@@ -637,25 +765,109 @@ var p = _promise;
 
 
 
-# 预设
+# 预设和插件
 
 预设是一套预先设定好的插件组合，最常用的 4 个官方预设是： `@babel/preset-env` 、 `@babel/preset-flow` 、 `@babel/preset-react` 、 `@babel/preset-typescript` 。
 
-如果 Babel 使用了多个预设，预设的执行顺序是：沿着预设数组从后向前。
-
-> 注：如果 Babel 同时使用了插件和预设， Babel 会先执行插件，后执行预设。
-
-
-
-# 插件
-
 插件是控制 Babel 行为的 JS 程序，比如插件 `@babel/plugin-transform-arrow-functions` 可以将箭头函数转换为普通函数。使用插件可以在更细的粒度上控制 Babel 的行为，最常用的官方插件是 `@babel/plugin-transform-runtime` 。
+
+如果 Babel 使用了多个预设，预设的执行顺序是：沿着预设数组从后向前。
 
 如果 Babel 使用了多个插件，插件的执行顺序是：沿着插件数组从前向后。
 
-> 注：如果 Babel 同时使用了插件和预设， Babel 会先执行插件，后执行预设。
+如果 Babel 同时使用了插件和预设， Babel 会先执行插件，后执行预设。
 
-## @babel/plugin-transform-runtime
+
+
+# @babel/preset-env
+
+> 历史：
+>
+> 在 Babel6 时代，常见的预设有： `babel-preset-es2015` 、 `babel-preset-es2016` 、 `babel-preset-es2017` 、 `babel-preset-state-0` 、 `babel-preset-state-1`、 `babel-preset-state-2`  、 `babel-preset-state-3` 、 `babel-preset-latest` 。其中 `babel-preset-state-x` 是指草案阶段的 ES 语法的转译预设，目前不再更新； `babel-preset-es201x` 是指 `201x` 年新发布的 ES 语法的转译预设，目前不再更新； `babel-preset-latest` 是指 `2015-至今` 的所有 ES 语法的转译预设，目前持续更新；
+>
+> `@babel/-preset-env` 正是 `babel-preset-latest` 的延续与增强，它不仅仅包含所有语法的转译规则，甚至还可以按需转译语法和按需填补 API 。它在 Babel 6 时代的旧名是 `babel-preset-env` 。
+
+本文只介绍常用的 4 个参数：
+
+## targets
+
+描述：告知 Babel 目标运行时的状态，该参数用于「按需转译语法」和「按需填补接口」。
+
+默认值： `{}` ，将所有 ES6+ 语法都转译成 ES5 语法，并且不会干涉接口的填补。
+
+数据类型：`string |Array<string> |{[string]: string}`
+
+示例：
+
+```json
+{
+    "presets": [[
+        "@babel/preset-env",
+      { "targets": "> 0.25%, not dead" }
+    ]]
+}
+```
+
+```json
+{
+    "presets": [[
+        "@babel/preset-env",
+        { "targets": { "chrome": "58" } }
+    ]]
+}
+```
+
+在 `package.json` 中设置 `browserslist` 字段可以起到和在 `babel.config.json` 中设置 `targets` 字段一样的效果。如果同时使用了 `browserslist` 和 `targets` ， Babel 会采用 `targets` 。 `browserslist` 的示例：
+
+```json
+{
+    "dependencies": {},
+    "devDependencies": {},
+  "browserslist": [ "chrome 58" ]
+}
+```
+
+## useBuiltIns
+
+描述：是否激活「按需填补接口」。
+
+默认值： `false`
+
+取值：
+
+-  `false` ：禁用。
+-  `entry` ：启用，引入目标环境缺失的 ES6+ API ，且必须在待处理的脚本中显式书写 `import "core-js/stable"` 和 `import "regenerator-runtime"` 。
+-  `usage` ：启用，引入目标环境缺失且被脚本使用到了的 ES6+ API ，且不能在待处理的脚本中书写 `import "core-js/stable"` 和 `import "regenerator-runtime"` 。
+
+## corejs
+
+描述：告知 Babel 项目所依赖的 `core-js` 模块的版本号是多少，仅当 `useBuiltIns` 值为 `"entry"` 或 `"usage"` 时，该参数才生效。
+
+最佳实践：将项目所依赖的 `core-js` 模块的版本号的字符串值作为 `corejs` 参数的值。比如如果 `package.json` 中显示 `"core-js": "^3.20.1"` ，那么就将 `corejs` 参数的值设为 `"3.19.3"` 。
+
+默认值： `"2.0"`
+
+数据类型： `string | {version: string, proposals: boolean}` 。如果想要引入提案阶段的 ES 特性，就需要将 `corejs` 参数设定为特殊值，这时才会用到 `{version: string, proposals: boolean}` 。如果只是想引入稳定的 ES 特性，只使用 `string` 格式就够了。
+
+> 注： Babel 需要先知道 `core-js` 的版本号才知道该如何按需填补接口，因为不同版本的 `core-js` 的内容不尽相同。如果不需要做按需填补接口，自然就不需要知道 `core-js` 的版本号了。这就是 `corejs` 参数的意义。
+
+## modules
+
+描述：设置 Babel 应当使用什么模块语法来导入模块。
+
+默认值： `auto` （此时会采用 commonjs 模块语法，即 `require` 和 `module.exports` ）
+
+取值：选用下述其一
+
+-  `"amd"`
+-  `"umd"`
+-  `"systemjs"`
+-  `"commonjs"`
+-  `"cjs"`
+-  `"auto"`
+-  `"false"` （此时会采用 ES 模块语法，即 `import` 和 `export` ）
+
+# @babel/plugin-transform-runtime
 
 > 注：如果没有使用 `@babel/preset-env` ，该插件将不会生效。
 
@@ -665,9 +877,9 @@ var p = _promise;
 2. 对除了 Generator Function API 和 Async Function API 之外的 ES6+ API 执行接口转译，该功能默认禁用。
 3. 对 Generator Function API 和 Async Function API 执行接口转译，该功能默认激活。
 
-功能 1 的示例见《语法辅助函数模块》，功能 2 和 3 的示例见《如何转译接口》。
+功能 1 的示例见《语法辅助函数》，功能 2 和 3 的示例见《如何转译接口》。
 
-### helpers
+## helpers
 
 描述：是否使用「语法辅助函数模块」来替换「内联语法辅助函数」。
 
@@ -678,7 +890,7 @@ var p = _promise;
 1.  `true` ：激活。
 2.  `false` ：禁用。
 
-### corejs
+## corejs
 
 描述：是否做接口转译，注意它只转译除了 Generator Function API 和 Async Function API 之外的 ES6+ API 。
 
@@ -690,7 +902,7 @@ var p = _promise;
 2.  `2` ：激活，使用来自 `@babel/runtime-corejs2` 的接口辅助函数模块。
 3.  `3` ：激活，使用来自 `@babel/runtime-corejs3` 的接口辅助函数模块。
 
-### regenerator
+## regenerator
 
 描述：是否做接口转译，注意它只转译 Generator Function API 和 Async Function API 。
 
@@ -703,7 +915,7 @@ var p = _promise;
 
 > 注：该功能所需的接口辅助函数模块来自 `@babel/runtime/regenerator` 或 `@babel/runtime-corejs2/regenerator` 或 `@babel/runtime-corejs3/regenerator` ，具体使用哪个则取决于 `corejs` 的取值。
 
-### version
+## version
 
 描述： runtime 模块版本号。因为该插件需要根据 runtime 模块的版本号来决定可以在内部使用哪些技巧。
 
@@ -715,7 +927,7 @@ var p = _promise;
 
 > 注：此处的「runtime模块」是指 `@babel/runtime` 或 `@babel/runtime-corejs2` 或 `@babel/runtime-corejs3` ，「runtime模块」不是官方术语，这是本节为了简化描述而自拟的术语。
 
-### absoluteRuntime
+## absoluteRuntime
 
 描述：是否自定义 `@babel/plugin-transform-runtime` 引入 runtime 模块的路径规则。几乎用不到该参数，取默认值就行，因为只要正常的将包安装至 `node_modules` 文件夹中，就不需要自定义包的路径。
 
@@ -728,13 +940,60 @@ var p = _promise;
 
 
 
-# 其他包
+# @babel/runtime
 
-## regenerator-runtime
+该包存储了所有的语法辅助函数模块和 `regenerator-runtime` 模块，前者位于 `helpers` 文件夹内，后者位于 `regenerator` 文件夹内。
+
+> 注：其实如果安装了 `@babel/preset-env` ， `@babel/runtime` 也会被自动安装上。但如果你要用 `@babel/runtime` 的话，最好还是再手动安装一遍。
+
+
+
+# @babel/runtime-corejs2
+
+它是 `@babel/runtime` 的升级版，它不仅仅包含 `@babel/runtime` 的所有内容，还包含 2 号主版本的 `core-js` 。
+
+2 号主版本的 `core-js` 只支持全局变量（如 `Promise` ）和静态属性（如 `Array.from` ），不支持实例属性（如 `Array.prototype.includes` ）。
+
+
+
+# @babel/runtime-corejs3
+
+它是 `@babel/runtime` 的升级版，它不仅仅包含 `@babel/runtime` 的所有内容，还包含 3 号主版本的 `core-js` 。
+
+3 号主版本的 `core-js` 不仅支持全局变量（如 `Promise` ）和静态属性（如 `Array.from` ），还支持实例属性（如 `Array.prototype.includes` ）。
+
+
+
+# regenerator-runtime
 
 它不是官方包，它用于填补 Generator Function API 和 Async Function API 。该包只有 2 个 JS 文件，第一个 `path.js` 用于获取 `runtime.js` 的绝对路径，第二个 `runtime.js` 用于填补 API 。
 
 由于它只用 1 个 JS 文件来填补 2 个 API ，所以只要需要填补 Generator Function API 或 Async Function API 中的任意一个， Babel 都会导入整个 `regenerator-runtime` 。
+
+
+
+# @babel/core
+
+Babel 的核心包，只要使用 Babel 的功能，就需要用到该包。
+
+
+
+# @babel/cli
+
+如果想用通过命令行来使用 Babel ，就需要安装该包，以下是一些示例：
+
+```
+1.将转译后的代码输出到terminal：
+npx babel a.js
+
+2.将转译后的代码写入到文件中：
+npx babel a.js -o b.js
+npx babel a.js --out-file b.js
+
+3.转译整个文件夹下的所有JS脚本，并将所有转译结果都保存在目标文件夹中：
+npx babel input_file_name -d output_file_name
+npx babel input_file_name --out-dir output_file_name
+```
 
 
 
