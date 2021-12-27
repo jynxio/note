@@ -1182,3 +1182,7 @@ window.requestAnimationFrame(function loop(){
 
 # 22 - Physics
 
+2D物理库比3D物理库更加高效，如果你想要实现的物理效果可以被抽象成2D运动，那么就使用2D物理库吧！
+
+有哪些2D和3D的物理库呢？去看three.js journey，不过当下最流行的3D物理库是 Ammo.js。
+
