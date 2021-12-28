@@ -1186,3 +1186,9 @@ window.requestAnimationFrame(function loop(){
 
 有哪些2D和3D的物理库呢？去看three.js journey，不过当下最流行的3D物理库是 Ammo.js。
 
+西蒙在本节课中使用了 Cannon.js ，该库需要我们提供一个时间步长，我以为可以使用 `getDelta()` 方法（ 来自 `Clock` ），但是西蒙却说不要使用它，你用它是得不到预期结果的，应该使用 `gteElapsedTime()` ，自己用当前的 `elapsed_time` 减去上一帧的 `elapsed_time` 来手动计算时间步长。
+
+> `getDelta` 到底发生了什么问题呢？
+
+
+
