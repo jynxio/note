@@ -1190,5 +1190,73 @@ window.requestAnimationFrame(function loop(){
 
 > `getDelta` 到底发生了什么问题呢？
 
+## Broadphase
 
+如果想要测试物体之间的碰撞，最容易想到的办法就是计算每个物体和每个物体的是否碰撞，但是这样的计算很耗费计算资源。
 
+Broadphase 是指在测试所有物体的碰撞之前，现对物体进行粗略的分类，再计算物体的碰撞，这样子计算更高效。Broadphase 可以剔除掉某些浪费的计算，比如如果有两堆距离很远的物体，很显然他们是不会发生碰撞的，所以根本就不需要计算它们的碰撞。
+
+在 cannon.js 中有 3 种 broadphase 算法：
+
+-  `NaiveBroadphase` ：计算每个物体与每个物体之间的情况
+-  `GridBrodphase` ：将世界格网化，然后只计算每个格网内的物体与物体之间的情况，以及相邻两个格网之间的物体和物体之间的情况。（PS：我不懂诶！这样不就完全等于 `Naivebroadphase` 了吗？）。
+-  `SAPBroadphase` ：（原文） (Sweep and prune broadphase): Tests Bodies onn arbitrary axes during multiples steps.
+
+cannon.js 默认使用 `NaiveBroadphase` ， 西蒙推荐使用 `SPABroadphase` ，这个算法有可能会发生 BUG ，比如明明应该发生碰撞的时候却没有发生，不过这个 bug 很罕见，只在物体快速移动的时候比较容易出现，而且这个算法性能更好。
+
+如何切换算法呢？
+
+```js
+world.broadphase = new cannon.SAPBroadphase(world);
+```
+
+## Sleep
+
+哪怕使用了更高效的 Boardphase 算法，但是有些本可不用参与碰撞测试的物体还是参加了， Sleep 可以让 cannon.js 在进行碰撞测试时，忽略那些静止或几乎静止的物体，不对他们进行碰撞测试，除非代码对它们施加了力或被别的物体碰撞了，它们才会参与碰撞测试。（我的他妈搞不懂这到底是什么意思？又是怎么办到的？）
+
+如何激活 Sleep 特性呢？
+
+```js
+world.allowSleep = true;
+```
+
+## Event
+
+我们可以监听发生在物体上的事件，比如 `colide` 、 `sleep` 、 `wakeup` 事件。这通常很有用，比如我们可以通过监听碰撞事件，来在物体碰撞时播放碰撞声。
+
+### 模拟碰撞音
+
+我们通过创建一段音频并播放它来模拟碰撞时发声：
+
+```js
+const hit_sound = new Audio("hit.mp3");
+
+function playHitSound() { hit_sound.play() }
+```
+
+然后我们为物体绑定碰撞事件，来让他在碰撞时播放碰撞音乐：
+
+```js
+body.addEventListener("collide", playHitSound);
+```
+
+现在，当这个物体与别的物体发生碰撞的时候，我们就可以听到碰撞的声音了。
+
+### 优化碰撞音的频率
+
+如果我们为所有物体都绑定了碰撞音，这个时候会发生一件很不自然的事情。
+
+如果我们为所有的物体都绑定了同一个 `Audio` 实例，那么当某一瞬间发生大量碰撞的时候，也只会播放一次该 `Audio` 实例的音乐。这会导致，哪怕大量的碰撞在同一时刻发生，但是同一时刻也只能听见一声碰撞。一种稍微有点用的解决方法就是：
+
+```js
+function playHitSound() {
+  
+		hit_sound.currentTime = 0;
+  	hit_sound.play();
+  
+}
+```
+
+这样，在每次播放碰撞音之前，就会立即结束上一次碰撞音，开始这一次碰撞音。这样子稍微有了改善，可以听到更密集的碰撞声了，但是碰撞声的播放仍旧是排队着一个一个播放的......如果你给每个物体都单独使用一个 `Audio` 实例，就可以解决了，不过性能更差。
+
+### 优化碰撞音的响度
