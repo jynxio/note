@@ -1260,3 +1260,21 @@ function playHitSound() {
 这样，在每次播放碰撞音之前，就会立即结束上一次碰撞音，开始这一次碰撞音。这样子稍微有了改善，可以听到更密集的碰撞声了，但是碰撞声的播放仍旧是排队着一个一个播放的......如果你给每个物体都单独使用一个 `Audio` 实例，就可以解决了，不过性能更差。
 
 ### 优化碰撞音的响度
+
+通过下述 API 可以获取碰撞的强度
+
+```js
+function playHitSound(collision) {
+
+		const impact_strength = collision.contact.getImpactVelocityAlongNormal();
+
+  	if（impact_strength < 1.5）return; // 若碰撞强度太低，则不播放碰撞音
+  
+  	hit_sound.volume = Math.random(); // 随机音量（0静音，1全音）
+  	hit_sound.currentTime = 0;        // 终止上一次音乐
+  	hit_sound.play();                 // 播放
+
+}
+```
+
+`impact_strength` 是碰撞的强度，是一个 `Number` 类型的值。
