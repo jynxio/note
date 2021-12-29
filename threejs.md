@@ -1283,4 +1283,35 @@ function playHitSound(collision) {
 
 cannon.js 和 three.js 是运行在 JS 主线程上的，那么它们当然就有可能导致阻塞，比如单次任务执行时间过长，导致页面卡顿。
 
-使用 Worker 来分担 cannon.js 和 three.js 的任务是一件很重要的事情。这有一个使用了 Worker 来制作 cannon.js 和 three.js 的例子 https://schteppe.github.io/cannon.js/examples/worker.html 。
+使用 Worker 来分担 cannon.js 和 three.js 的任务是一件很重要的事情。这有一个使用了 Worker 来制作 cannon.js 和 three.js 的[例子](https://schteppe.github.io/cannon.js/examples/worker.html )。
+
+## 删除物体
+
+删除物体的时候，要记得删除 three 世界的物体、物理世界的物体、还有物体上的事件：
+
+```js
+// 解绑事件
+body.removeEventListener("collide", playHitSound);
+
+// 移除物理世界的物体
+world.removeBody(body);
+
+// 移除three世界的物体
+scene.remove(mesh);
+```
+
+## Cannon.js
+
+cannon.js 自 2015 年开始就停止维护了，有些人分叉了它并继续更新和维护，即 [cannon-es](https://github.com/pmndrs/cannon-es) ，不过它使用 typescript 写的（如果我不使用 babel ，我可以直接用它吗）。
+
+## Ammo.js
+
+Ammo.js比Cannon.js的性能更好，更受欢迎，支持更多功能，有更多的 three.js 配套示例，缺点是更难上手。对了， Am mo.js 具有 We bAssembly 支持。
+
+这里使用 cannon.js 的原因就是因为它更容易实现和理解。
+
+## Physijs
+
+https://github.com/chandlerprall/Physijs
+
+Physijs 是结合了 three.js 和物理引擎的库，缺点是如果你尝试做库不支持的事情，事情就会变得复杂，而且查找错误的来源也可能很麻烦。
