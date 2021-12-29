@@ -1278,3 +1278,9 @@ function playHitSound(collision) {
 ```
 
 `impact_strength` 是碰撞的强度，是一个 `Number` 类型的值。
+
+## Worker
+
+cannon.js 和 three.js 是运行在 JS 主线程上的，那么它们当然就有可能导致阻塞，比如单次任务执行时间过长，导致页面卡顿。
+
+使用 Worker 来分担 cannon.js 和 three.js 的任务是一件很重要的事情。这有一个使用了 Worker 来制作 cannon.js 和 three.js 的例子 https://schteppe.github.io/cannon.js/examples/worker.html 。
