@@ -1306,7 +1306,7 @@ cannon.js 自 2015 年开始就停止维护了，有些人分叉了它并继续�
 
 ## Ammo.js
 
-Ammo.js比Cannon.js的性能更好，更受欢迎，支持更多功能，有更多的 three.js 配套示例，缺点是更难上手。对了， Am mo.js 具有 We bAssembly 支持。
+Ammo.js比Cannon.js的性能更好，更受欢迎，支持更多功能，有更多的 three.js 配套示例，缺点是更难上手。对了， Ammo.js 具有 We bAssembly 支持。
 
 这里使用 cannon.js 的原因就是因为它更容易实现和理解。
 
