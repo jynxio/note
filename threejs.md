@@ -1315,3 +1315,29 @@ Ammo.js比Cannon.js的性能更好，更受欢迎，支持更多功能，有更�
 https://github.com/chandlerprall/Physijs
 
 Physijs 是结合了 three.js 和物理引擎的库，缺点是如果你尝试做库不支持的事情，事情就会变得复杂，而且查找错误的来源也可能很麻烦。
+
+
+
+# 23 - Imported models
+
+## 模型格式
+
+目前有上百种模型格式，其中最流行的格式是：
+
+-  `OBJ` 
+-  `FBX` 
+-  `STL` 
+-  `PLY` 
+-  `COLLADA` 
+-  `3DS`
+-  `GLTF`
+
+其中 `GLTF` 正在逐渐成为模型格式的标准，它在过去几年开始就变得非常流行，它被各种 3D 软件、游戏引擎、库所支持，这意味着它在不同环境下可以更容易的呈现一致的效果。
+
+ `GLTF` 代表 GL 传输格式（ `GL Transmission Format` ） ，它是由 `Khronos Group` ，这是一个由 OpenGL 、 WebGL 、 Vulkan 、 Collada 、 AMD 、 ATI 、 Nvidia 、 Apple 、 Google 等企业构成的组织。
+
+`GLTF` 格式可以存储非常多的模型数据，比如几何形状、材质、相机、灯光、场景、动画、骨架、形变等等。
+
+ `GLTF` 支持各种数据格式，比如 json 、二进制、嵌入式纹理等。
+
+但是这并不意味着你必须使用 `GLTF` ，相反，如果你的模型仅仅是几何体，你更应该选择 `OBJ` 、 `FBX` 、 `STL` 、 `PLY` 等格式。此外，不同的模型格式不仅仅在体积上有区别，在解压缩的耗时上也有区别，如果可能的话，你可以为你的项目测试同一个模型的不同格式文件，以来确定最合适的格式。
