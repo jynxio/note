@@ -1341,3 +1341,92 @@ Physijs 是结合了 three.js 和物理引擎的库，缺点是如果你尝试�
  `GLTF` 支持各种数据格式，比如 json 、二进制、嵌入式纹理等。
 
 但是这并不意味着你必须使用 `GLTF` ，相反，如果你的模型仅仅是几何体，你更应该选择 `OBJ` 、 `FBX` 、 `STL` 、 `PLY` 等格式。此外，不同的模型格式不仅仅在体积上有区别，在解压缩的耗时上也有区别，如果可能的话，你可以为你的项目测试同一个模型的不同格式文件，以来确定最合适的格式。
+
+## Find a model
+
+GLTF 团队提供了一些[示例模型](https://github.com/KhronosGroup/glTF-Sample-Models)，有简单或复杂的。
+
+## GLTF formats
+
+虽然 `GLTF` 本身就是一种格式，但是在它之下还有几种不同的文件格式，比如：
+
+-  `glTF`
+-  `glTF-Binary`
+-  `glTF-Draco`
+-  `glTF-Embedded`
+
+除了上述 4 种外，还有更多的 GLTF 文件格式，但是这 4 种是最主要的。如何选择这 4 种格式呢？假如你在导入模型之后，还想要更改模型，那就使用 `glTF` 。假如你不需要更改模型，而且希望模型保持简洁，那就使用 `glTF-Binary` 。其实是可以对 `glTF` 和 `glTF-Binary` 使用 Draco 来压缩数据的。
+
+### glTF
+
+它是默认的 GLTF 模型。示例模型位于 `glTF` 文件夹内，其内含有 3 个文件，分别是：
+
+-  `Duck.gltf` 
+-  `Duck0.bin` 
+-  `DuckCM.png`
+
+`Duck.gltf` 是 JSON 格式的文件，它包含了各种信息，比如 camera 、 light 、 scene 、 material 、 object transformation 、 geometry 、 texture ......
+
+`Duco0.bin` 是二进制文件，它包含了 geometry 信息，以及和 vertex （顶点）相关的一切信息，比如 UV 坐标、 normal 、 vertex color ......
+
+`DuckCM.png` 是纹理文件。
+
+加载 `glTF` 格式的文件的 时候，只需要加载 `Duck.gltf` 就可以了，因为该文件内部就已经包含了对其他的引用，其他文件会在后续被自动加载进来。
+
+### glTF-Binary
+
+示例模型位于 `glTF-Binary` 文件夹内，其内只有 1 个文件： `Duck.glb` 。
+
+这个文件是二进制文件，它包含了所有所需的数据。这种格式的优点是更简洁，因为只有 1 个文件，缺点是无法轻松改变它的数据，比如你无法调整纹理的大小或压缩纹理，因为纹理数据被写死在了二进制文件中。
+
+### glTF-Draco
+
+[draco](https://github.com/google/draco) 是由 Google 开源的模型压缩算法，它主要压缩与几何相关的数据，它可以处理各种模型格式，并且压缩率很高，比如原本 102kb 的 `Duck.bin` 文件经 draco 压缩后仅有 10kb ！
+
+[glTF Pipeline](https://github.com/CesiumGS/gltf-pipeline) 可以：
+
+1. 将 glTF 转换为 glb ，或者将 glb 转换为 glTF ；
+2. 将 buffers 和 textures 保存为单独的文件或嵌入式的文件；
+3. 将 glTF 1.0 转换为 glTF 2.0 ；
+4. 应用 draco 压缩；
+
+如何加载经过 draco 压缩的 glTF 模型呢？
+
+对于加载普通的 GLTF 模型，使用 GLTFLoader 就行了，对于加载使用了 draco 算法的 GLTF 模型，不光需要使用 GLTFLoader ，还需要为 GLTFLoader 指定 DRACOLoader 。 DRACOLoader 是由 Three.js 提供的 draco 算法的驱动，但是这个驱动本身并不包含解码器（ draco 算法），所以你还需要为 DRACOLoader 加载解码器。 Three.js 提供了这个算法，它就是 `examples/js/libs/draco` 中，具体的加载过程如下：
+
+```js
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders.DRACOLoader.js";
+
+const draco_loader = new DRACOLoader();
+draco_loader.setDecoderPath("./node_modules/three/examples/js/libs/draco/");
+
+const gltf_loader = new GLTFLoader();
+gltf_loader.setDRACOLoader(draco_loader);
+gltf_loader.load(
+		"./model/scene.gltf",
+    function onSuccess(gltf) { scene.add(gltf.scene) }
+);
+```
+
+> 注：
+>
+> 虽然 `gltf_loader` 已经注入了 draco 解码器，但是不用担心解码器会对加载无压缩的模型产生性能影响，因为解码器只在加载压缩模型时才发挥作用。
+
+Three.js 的官方文档中，介绍了如何使用 DRACOLoader 来纯粹的加载模型的 `BufferGeometry` 。而且 draco 解码器可以在 WASM 或 worker 上运行， DRACOLoader 的 `setDecoderConfig` 可以设置解码器是基于 JS 运行还是基于 WASM 运行， `setWorkerLimit` 可以设置解码器最多可以使用几个 worker 。
+
+### glTF-Embedded
+
+这种格式和 `glTF-Binary` 格式差不多，都是只有一个文件，区别是这种格式使用了 JSON ，这让它可以被编辑，当然体积也变大了。
+
+## Add the loaded model to our scene
+
+使用 GLTFLoader 将 `glTF` 格式的模型加载进来之后，这个模型里面包含的东西其实很复杂，它居然包含有一个 PrespectiveCamera ！而且这个相机似乎和模型的缩放、位置、旋转等等有关。
+
+西蒙说，你可以选择把整个包含了模型mesh和相机的scene当成一个group加载进来，也可以单独只加载模型mesh，不过这样好像会导致某些关于旋转、缩放等的问题。
+
+## When to use the Draco compression
+
+draco 的优点是可以明显压缩模型的体积，缺点是：你需要耗费计算资源和时间来加载 DRACOLoader 和 解码器，然后需要花时间去解码压缩文件，这会导致在模型资源加载完成和显示这 2 个步骤中间会有一段停顿，哪怕你使用 WASM 或 worker 也无法改变这个事实。
+
+如果你只有百来 kb 的模型，那就没必要使用 draco 压缩模型了，如果你的模型资源是 MB 级别的，那就有必要使用 draco 了，不过你也要考虑一下「加载停顿」带来的影响。
