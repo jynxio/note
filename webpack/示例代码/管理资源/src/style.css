@@ -1,0 +1,10 @@
+@font-face {
+    font-family: "The Nautigal";
+    src: url("./font.ttf");
+}
+
+.hello {
+    color: red;
+    font-family: "The Nautigal";
+    background: url("./image.jpeg");
+}

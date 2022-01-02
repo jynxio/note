@@ -19,7 +19,7 @@ WebXR emulator 是由 mozilla 开发的浏览器插件，用于在浏览器中�
 3. 打开 VR 页面（请确保在开启 VR 页面之前，已经选择了正确的 VR 设备）；
 4. 使用；
 
-![webxr-emulator-vr](picture/webxr/webxr-emulator-vr.gif)
+![webxr-emulator-vr](image-hosting/webxr/webxr-emulator-vr.gif)
 
 ## 如何模拟 AR
 
@@ -30,7 +30,7 @@ WebXR emulator 是由 mozilla 开发的浏览器插件，用于在浏览器中�
 
 用 WebXR emulator 来模拟使用 AR 并不怎么好用。
 
-![webxr-emulator-ar](picture/webxr/webxr-emulator-ar.gif)
+![webxr-emulator-ar](image-hosting/webxr/webxr-emulator-ar.gif)
 
 
 
@@ -218,7 +218,7 @@ session.updateRenderState({layers: [layer]});
 
 它是为增强现实设计的 API ，它的工作原理是：当场景运行时，人工只能利用计算机视觉大致构建出你所处的三维环境，比如光源的位置、颜色、投射方向，甚至可以为你提供一个用于反射的立体图，这样你就能让虚拟物体展现出融入四周的光泽，甚至可以让物体镜面反射现实环境。
 
-![照明估计对比图](picture/webxr/%E5%85%89%E7%85%A7%E4%BC%B0%E8%AE%A1%E5%AF%B9%E6%AF%94%E5%9B%BE.png)
+![照明估计对比图](image-hosting/webxr/%E5%85%89%E7%85%A7%E4%BC%B0%E8%AE%A1%E5%AF%B9%E6%AF%94%E5%9B%BE.png)
 
 ```js
 /*
@@ -283,7 +283,7 @@ light_probe.addEventListener("reflectionchange", _ => {
 
 它就像是 Depth Sensing 的另一种玩法。
 
-![用户环境的三维模型](picture/webxr/real-wrold-geometry.png)
+![用户环境的三维模型](image-hosting/webxr/real-wrold-geometry.png)
 
 ### Geographic Alignment
 
