@@ -89,3 +89,28 @@ webpack5 要求 Node.js v10.13.0+ 。
 
 ```
 
+
+
+# 动态导入
+
+学习 webpack 的 [动态导入](https://webpack.docschina.org/guides/code-splitting/) ，《现代JavaScript教程》中的 [动态导入](https://zh.javascript.info/modules-dynamic-imports) 对你会有额外帮助，也建议学完它的 3 节《模块》的内容。
+
+
+
+# 预获取/预加载模块
+
+🔗 https://webpack.docschina.org/guides/code-splitting/
+
+
+
+# 缓存
+
+浏览器会使用缓存技术来加快网站的加载速度，这带来的一个问题是，如果我们在部署新版本时不更改资源的名称，浏览器就可能会认为它没有被更新，然后继续使用它的缓存版本，这就会带来一些棘手的问题。
+
+webpack 似乎有一套专业的 [办法](https://webpack.docschina.org/guides/caching/) 来解决它，不过为了省事我暂时先使用浏览器的 「停用缓存」功能。
+
+
+
+# 创建 library
+
+从这里开始学。
