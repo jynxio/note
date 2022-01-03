@@ -1,0 +1,9 @@
+@font-face {
+    font-family: "The Nautigal";
+    src: url("../static/font/font.ttf");
+}
+
+p {
+    font-family: "The Nautigal";
+    font-size: 10vmin;
+}
