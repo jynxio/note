@@ -1,5 +1,4 @@
 {
-    "private": true,
     "scripts": {
         "start": "webpack serve --config ./bundler/webpack.dev.js",
         "build": "webpack --config ./bundler/webpack.prod.js"
