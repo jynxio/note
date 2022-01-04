@@ -1,11 +1,11 @@
 const path = require( "path" );
 
-const html_wepack_plugin = require( "html-webpack-plugin" );
+const HtmlWebpackPlugin = require( "html-webpack-plugin" );
 
 module.exports = {
     entry: "./source/index.js",
     plugins: [
-        new html_wepack_plugin( { title: "" } ),
+        new HtmlWebpackPlugin( { title: "" } ),
     ],
     module: {
         rules: [

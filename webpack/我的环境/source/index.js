@@ -2,6 +2,8 @@ import "/style/reset.css";
 
 import "/style/font.css";
 
+import Img from "/static/image/image.jpeg"
+
 
 /**
  *
@@ -17,7 +19,7 @@ document.body.appendChild( text );
  */
 const img = new Image();
 
-img.src = "/static/image/image.jpeg";
+img.src = Img;
 document.body.appendChild( img );
 
 
