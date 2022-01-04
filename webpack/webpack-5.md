@@ -93,8 +93,6 @@ webpack5 要求 Node.js v10.13.0+ 。
 
 # 生产环境
 
-> 如何压缩 CSS ？
-
 `package.json`
 
 ```json
@@ -267,3 +265,7 @@ source map 相当消耗资源，而且会暴露源码的位置，如果要保护
 # Tree Shaking
 
 它用来剔除无用代码，但我目前没有使用它。
+
+
+
+# 懒加载
