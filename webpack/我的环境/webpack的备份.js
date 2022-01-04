@@ -22,8 +22,8 @@ module.exports = {
         port: 8080,           //
         // host: "local-ip",  // 激活后，服务器将只会发布在数字地址下，否则服务器将会发布在数字地址和localhost地址下，建议不激活。
         open: true,           // 激活后，WDS会在服务器启动后使用默认浏览器来打开output目录下的inde.html。如果需要打开一个或多个指定的其他页面，或者更换浏览器，则需要额外设置。
-        hot: true,            // 激活HMR
-        liveReload: true,     // 激活后，将监听文件的变化，当文件发生变化后WDS会重新加载页面。
+        hot: true,            // 激活热更新
+        liveReload: true,     // 激活热加载
     },
     module: {
         rules: [
