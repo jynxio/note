@@ -1409,9 +1409,8 @@ gltf_loader.load(
 );
 ```
 
-> 注：
+> 注：虽然 `gltf_loader` 已经注入了 draco 解码器，但是不用担心解码器会对加载无压缩的模型产生性能影响，因为解码器只在加载压缩模型时才发挥作用。
 >
-> 虽然 `gltf_loader` 已经注入了 draco 解码器，但是不用担心解码器会对加载无压缩的模型产生性能影响，因为解码器只在加载压缩模型时才发挥作用。
 
 Three.js 的官方文档中，介绍了如何使用 DRACOLoader 来纯粹的加载模型的 `BufferGeometry` 。而且 draco 解码器可以在 WASM 或 worker 上运行， DRACOLoader 的 `setDecoderConfig` 可以设置解码器是基于 JS 运行还是基于 WASM 运行， `setWorkerLimit` 可以设置解码器最多可以使用几个 worker 。
 
@@ -1436,3 +1435,8 @@ draco 的优点是可以明显压缩模型的体积，缺点是：你需要耗�
 ## Three.js editor
 
 [Three.js editor](https://threejs.org/editor/) 是一个在线的轻量的 3D 软件，它好方便啊！甚至还可以导出模型来用！调试的时候快用起来！！！
+
+
+
+# 24 - Custom models with Blender
+
