@@ -50,7 +50,45 @@ Babel 是一个 JS 编译器，它可以将使用了 ES6+ 特性的代码转译�
 - 转译接口：比如如果目标运行时不支持 `Promise` ，就将脚本中的 `Promise` 转译成目标运行时支持的语法和 API 。
 - 填补接口：比如如果目标运行时不支持 `Promise` ，就像目标运行时补充 `Promise` ，这将会改变目标运行时的全局环境（比如 `window` 对象和原型链 ）。
 
-
+> 巴别塔（ Tower of Babel ）：《圣经·旧约·创世纪》第 11 章记载，当时的人类联合起来兴建一座可以通天的塔，上帝为了阻止人类的计划，便打乱了人类的语言，使人类不能知晓彼此的意思，通天塔的计划便因此失败。
+>
+> 1. And the whole earth was of one language, and of one speech.
+>
+>    那时候，整个大地都使用同一种语言。
+>
+> 2. And it came to pass, as they journeyed from the east, that they found a plain in the land of Shinar, and they dwelt there.
+>
+>    一群来自东方的人迁移并定居在了 Shinar 的平原上。
+>
+> 3. And they said one to another, Go to, let us make brick, and burn them throughly. And they had brick for stone, and slime had they for morter.
+>
+>    然后他们说，让我们联合起来，烧纸砖块，并用泥浆将砖块砌在一起。
+>
+> 4. And they said, Go to, let us build us a city and a tower, whose top may reach unto heaven; and let us make us a name, lest we be scattered abroad upon the face of the whole earth.，
+>
+>    我们要建造一座城来让我们团聚在一起，还要建造一座通天之塔来让我们名扬天下。
+>
+> 5. And the LORD came down to see the city and the tower, which the children of men builded.
+>
+>    上帝来到人间看见了人类正在建造的东西。
+>
+> 6. And the LORD said, Behold, the people is one, and they have all one language; and this they begin to do: and now nothing will be restrained from them, which they have imagined to do.
+>
+>    他惊叹人类能够团结一心的建设如此浩荡的工程，他担心世上再无困难可以难倒他们。
+>
+> 7. Go to, let us go down, and there confound their language, that they may not understand one another's speech.
+>
+>    于是上帝便打乱了人类的语言，让他们无法理解彼此的意思。
+>
+> 8. So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city.
+>
+>    人类无法团结在一起，渐渐的，人类便分散到了世界各地，建城造塔的计划也因此告终了。
+>
+> 9. Therefore is the name of it called Babel; because the LORD did there confound the language of all the earth: and from thence did the LORD scatter them abroad upon the face of all the earth.
+>
+>    后来，那个地方被称为 Babel ，意指上帝在那里打乱了人类的语言，瓦解了人类的团结。
+>
+> 摘自《圣经·旧约·创世纪》的第 11 章的第 1 ~ 9 段。
 
 # 版本
 
