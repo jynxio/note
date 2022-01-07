@@ -1440,6 +1440,8 @@ draco 的优点是可以明显压缩模型的体积，缺点是：你需要耗�
 
 # 24 - Custom models with Blender
 
-我用 blender 制作了一个汉堡模型，导出的普通版本可以在 three 中正常显示，但是导出的 draco 版却不能（模型数据加载成功了，代码也没有报错，但是场景中就是没有模型）。
+我用 blender 制作了一个汉堡包模型，导出了普通版本和 draco 版本，普通版本 8MB ， draco 版本 741KB。
 
-反而，我使用 gltf-pipeline 工具对普通版本进行压缩，得到另一个 draco 的版本却可以正常显示。这个 draco 版比 blender 的 draco 版的体积更大。
+我使用 gltf-pipeline 对普通版本进行了 draco 压缩，获得了另一个 draco 版本，它更小，是 322KB。无法使用 gltf-pipeline 对已经做过 draco 压缩的模型进行二次压缩。
+
+它们仨都能正常显示。
