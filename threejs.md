@@ -1508,3 +1508,56 @@ scene.traverse( child => {
 
 ### Output encoding
 
+renderer 的 `outputEncoding` 属性控制渲染编码，默认值是 `three.LinearEncoding` ，它看起来还 ok ，但还不够真实。
+
+如果想让场景渲染的更加真实，推荐使用 `three.sRGBEncoding` ：
+
+```js
+renderer.outputEncoding = three.sRGBEncoding;
+```
+
+另一个推荐值是 `three.GammaEncoding` ，但是它的上手难度很高，所以本文不介绍/使用它，其实 `sRGBEncoding` 是 `GammaEncoding` 的一种。如果你想了解更多 `GammaEncoding` 可以参看：
+
+- https://www.donmccurdy.com/2020/06/17/color-management-in-threejs/
+- https://medium.com/@tomforsyth/the-srgb-learning-curve-773b7f68cf7a
+
+### Textures encoding
+
+原本场景的 environment map 的颜色和图片资源的颜色是一致的，但是在改变了 renderer  的 output encoding 后（改为 `sRGBEncoding` ），就会发现整个场景的颜色都变的更亮的，这意味着场景的 environment map 的颜色出错了（尽管错误的色调看起来还是挺顺眼的......）。
+
+这是由于 renderer 的 `outputEncoding` 更改为了 `sRGBEncoding` 后，环境贴图纹理的输出编码仍然在使用 `LinearEncoding` 。
+
+当改变了 renderer 的输出编码之后，为了修复上述错误，我们还需要相应的修改场景中的纹理的颜色，修改遵循这样一条原则：如果纹理是肉眼可见的，比如 `map` 、 `envMap` 一类，我们就需要将它们的 `encoding` 改成 renderer 的 `outputEncoding` ，其余的纹理则继续使用 `LinearEncoding` 就好了。
+
+```js
+environment_map.encoding = three.sRGBEncoding;
+```
+
+从外部导入的模型，它们往往也会使用一些肉眼可见的纹理，按理来说也要改变这些纹理的 `encoding` ，不过好消息是 `GLTFLoader` 帮我们做好了这些事情，尽管我不知道他具体怎么实现的，但它就是会自动的让纹理拥有正确的 encoding 。
+
+### Tone mapping
+
+ `toneMapping` 属性用于控制色调映射，它用来将 HDR （高动态渲染）转换为 LDR （低动态渲染）。
+
+> 一般的显示器只能显示 8 位色，即从 0 ～ 255 ，但是真实世界的颜色范围非常大，远不止 256 级，比如几十万级。如果一张图像的颜色有几十万级，我们将它的颜色区间线性的缩放至 [0, 255] ，就会产生色带问题（ color banding ），而且还有可能存在一大片黑或者一大片白的情况。
+>
+> HDR 就是为了解决这个问题，它是指根据明暗对比，把高动态范围光照范围（ HDR ）非线性的 ToneMapping 映射至显示器能显示的低动态光照范围（ LDR ），尽可能的保留明暗对比的细节，使效果比线性处理的更加逼真。
+
+虽然示例中所使用的图片资源不是 HDR 的，但是改变 `toneMapping ` 也可以使结果看起来更逼真， `toneMapping` 有多个可选的值：
+
+- `three.NoToneMapping` （默认）
+- `three.LinearToneMapping`
+- `three.ReinhardToneMapping`
+- `three.CineonToneMapping`
+- `three.ACESFilmicToneMapping`
+
+```js
+renderer.toneMapping = three.LinearToneMapping;
+```
+
+renderer 的 `toneMappingExposure` 可以更改色调映射的曝光级别，默认值是 1 。我也不懂曝光级别是啥。
+
+```js
+renderer.toneMappingExposure = 1;
+```
+
