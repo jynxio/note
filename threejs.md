@@ -1561,3 +1561,5 @@ renderer 的 `toneMappingExposure` 可以更改色调映射的曝光级别，默
 renderer.toneMappingExposure = 1;
 ```
 
+### Antialiasing
+
