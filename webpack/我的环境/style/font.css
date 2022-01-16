@@ -4,6 +4,7 @@
 }
 
 p {
+    background-image: url("/static/image/image.jpeg");
     font-family: "The Nautigal";
     font-size: 10vmin;
 }
