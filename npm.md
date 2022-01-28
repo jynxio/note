@@ -14,7 +14,7 @@ npm config set cache="D:\nodejs\node_cache"
 
 # 源
 npm config get registry                                   // 查询源
-npm config set registry="https://registry.npm.taobao.org" // 换源
+npm config set registry="https://registry.npmmirror.com"  // 换源
 
 # 包
 npm install [--global] --save-prod <packagename[@tag|version]> // 下载生产包
